@@ -31,7 +31,7 @@ let
   platformString = lib.concatStringsSep "-" platforms;
   filename = "${id}_${versionString}_${platformString}.kpkg";
   manifest = builtins.toJSON {
-    manifest_version = 3;
+    manifest_version = 2;
     inherit id name author description version dependencies;
     supported_platforms = platforms;
   };
@@ -45,6 +45,7 @@ pkgs.runCommand "${id}-${versionString}-${platformString}"
   SOURCE = if src == null then "" else src;
   nativeBuildInputs = [
     pkgs.coreutils
+    pkgs.findutils
     pkgs.gnutar
     pkgs.gzip
     pkgs.unzip
@@ -71,6 +72,8 @@ pkgs.runCommand "${id}-${versionString}-${platformString}"
       --group=0 \
       --numeric-owner \
       --format=gnu \
-      -cf - . \
+      --null \
+      --files-from=<(${lib.getExe pkgs.findutils} . -mindepth 1 -maxdepth 1 -printf '%P\0' | ${lib.getExe' pkgs.coreutils "sort"} -z) \
+      -cf - \
       | ${lib.getExe pkgs.gzip} -n > "''${OUTPUT_DIRECTORY}/${filename}"
   ''

@@ -15,8 +15,12 @@ let
   }.${id};
   checkArtifact = artifact: ''
     ARCHIVE=${lib.escapeShellArg "${artifact}/${artifact.kpm.filename}"}
-    test "$(${lib.getExe pkgs.gnutar} -xOf "''${ARCHIVE}" ./manifest.json)" = ${lib.escapeShellArg artifact.kpm.manifest}
+    test "$(${lib.getExe pkgs.gnutar} -xOf "''${ARCHIVE}" manifest.json)" = ${lib.escapeShellArg artifact.kpm.manifest}
+    test "$(${lib.getExe pkgs.gnutar} -xOf "''${ARCHIVE}" manifest.json | ${lib.getExe pkgs.jq} -r .manifest_version)" -eq 2
     ${lib.getExe pkgs.gnutar} -tzf "''${ARCHIVE}" > archive-members
+    if grep -Eq '^\./' archive-members; then
+      exit 1
+    fi
     test "$(sort archive-members | uniq -d | wc -l)" -eq 0
     if grep -Eq '^/|(^|/)\.\.(/|$)' archive-members; then
       exit 1
