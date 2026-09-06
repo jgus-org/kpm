@@ -1,6 +1,6 @@
-{ mkKpackage, fetchurl }:
+{ mkKpackage, fetchurl, writeTextFile }:
 let
-  mkWafPackage = import ../../lib/mk-waf-package.nix { inherit mkKpackage; };
+  mkWafPackage = import ../../lib/mk-waf-package.nix { inherit mkKpackage writeTextFile; };
 in
 [
   (mkWafPackage {
@@ -25,5 +25,7 @@ in
     payloadDirectory = "payload/kreate";
     mesquiteDirectory = "/var/local/mesquite/kreate";
     appId = "xyz.foskya.kreate";
+    scriptletName = "Kreate.sh";
+    legacyPaths = [ "/mnt/us/documents/kreate" ];
   })
 ]

@@ -1,4 +1,4 @@
-{ mkKpackage }:
+{ mkKpackage, writeTextFile }:
 { id
 , name
 , author
@@ -10,35 +10,43 @@
 , payloadDirectory
 , mesquiteDirectory
 , appId
+, scriptletName
+, legacyPaths
 , legacyPayloadDirectory ? null
+, legacyFirmwareMaximum ? null
 ,
 }:
+assert (legacyPayloadDirectory == null) == (legacyFirmwareMaximum == null);
+assert legacyFirmwareMaximum == null || builtins.length legacyFirmwareMaximum == 4;
 let
   mesquiteParent = builtins.dirOf mesquiteDirectory;
-  legacyPaths = {
-    kpomo = [
-      "/mnt/us/documents/kpomo"
-      "/mnt/us/documents/kpomo.sh"
-    ];
-    kreate = [ "/mnt/us/documents/kreate" ];
-    kships = [
-      "/mnt/us/documents/KShips"
-      "/mnt/us/documents/KShips.sh"
-    ];
-    kwordle = [
-      "/mnt/us/documents/kwordle"
-      "/mnt/us/documents/kwordle.sh"
-    ];
-  }.${id};
+  scriptlet = writeTextFile {
+    name = "${id}-scriptlet.sh";
+    text = ''
+      # DontUseFBInk
+      exec /var/local/kmc/bin/kpm launch ${id}
+    '';
+  };
   legacyCollision = builtins.concatStringsSep " || " (map (path: "[ -e '${path}' ]") legacyPaths);
 in
-mkKpackage {
-  inherit id name author description version platforms src buildPayload;
+(mkKpackage {
+  inherit id name author description version platforms src;
+  buildPayload = ''
+    ${buildPayload}
+    mkdir -p scriptlets
+    cp '${scriptlet}' 'scriptlets/${scriptletName}'
+  '';
   installScript = builtins.toFile "${id}-install.sh" ''
     set -eu
     MARKER='${mesquiteDirectory}/.kpm-${id}'
-    if ${legacyCollision}; then
+    SCRIPTLET='/mnt/us/documents/${scriptletName}'
+    SCRIPTLET_STAGE='/mnt/us/documents/.kpm-${id}-scriptlet-$$'
+    if [ ! -f "''${MARKER}" ] && { ${legacyCollision}; }; then
       echo 'a KindleForge ${id} deployment already exists' >&2
+      exit 1
+    fi
+    if [ -e "''${SCRIPTLET}" ] && ! cmp -s 'scriptlets/${scriptletName}' "''${SCRIPTLET}"; then
+      echo 'existing ${scriptletName} is not owned by this package' >&2
       exit 1
     fi
     HANDLER_COUNT="$(sqlite3 /var/local/appreg.db "SELECT COUNT(*) FROM handlerIds WHERE handlerId = '${appId}';")"
@@ -66,39 +74,47 @@ mkKpackage {
       : "''${FIRMWARE_MINOR:=0}"
       : "''${FIRMWARE_PATCH:=0}"
       : "''${FIRMWARE_BUILD:=0}"
-      if [ "''${FIRMWARE_MAJOR}" -lt 5 ] || \
-        { [ "''${FIRMWARE_MAJOR}" -eq 5 ] && [ "''${FIRMWARE_MINOR}" -lt 6 ]; } || \
-        { [ "''${FIRMWARE_MAJOR}" -eq 5 ] && [ "''${FIRMWARE_MINOR}" -eq 6 ] && [ "''${FIRMWARE_PATCH}" -lt 1 ]; } || \
-        { [ "''${FIRMWARE_MAJOR}" -eq 5 ] && [ "''${FIRMWARE_MINOR}" -eq 6 ] && [ "''${FIRMWARE_PATCH}" -eq 1 ] && [ "''${FIRMWARE_BUILD}" -le 1 ]; }; then
+      if [ "''${FIRMWARE_MAJOR}" -lt ${toString (builtins.elemAt legacyFirmwareMaximum 0)} ] || \
+        { [ "''${FIRMWARE_MAJOR}" -eq ${toString (builtins.elemAt legacyFirmwareMaximum 0)} ] && [ "''${FIRMWARE_MINOR}" -lt ${toString (builtins.elemAt legacyFirmwareMaximum 1)} ]; } || \
+        { [ "''${FIRMWARE_MAJOR}" -eq ${toString (builtins.elemAt legacyFirmwareMaximum 0)} ] && [ "''${FIRMWARE_MINOR}" -eq ${toString (builtins.elemAt legacyFirmwareMaximum 1)} ] && [ "''${FIRMWARE_PATCH}" -lt ${toString (builtins.elemAt legacyFirmwareMaximum 2)} ]; } || \
+        { [ "''${FIRMWARE_MAJOR}" -eq ${toString (builtins.elemAt legacyFirmwareMaximum 0)} ] && [ "''${FIRMWARE_MINOR}" -eq ${toString (builtins.elemAt legacyFirmwareMaximum 1)} ] && [ "''${FIRMWARE_PATCH}" -eq ${toString (builtins.elemAt legacyFirmwareMaximum 2)} ] && [ "''${FIRMWARE_BUILD}" -le ${toString (builtins.elemAt legacyFirmwareMaximum 3)} ]; }; then
         PAYLOAD_DIRECTORY='${legacyPayloadDirectory}'
       fi
     ''}
     STAGING_DIRECTORY='${mesquiteParent}/.kpm-${id}-stage-$$'
     cleanup() {
       rm -rf "''${STAGING_DIRECTORY}"
+      rm -f "''${SCRIPTLET_STAGE}"
     }
     trap cleanup EXIT HUP INT TERM
+    mkdir -p /mnt/us/documents
+    cp 'scriptlets/${scriptletName}' "''${SCRIPTLET_STAGE}"
     mkdir -p '${mesquiteParent}'
     mkdir "''${STAGING_DIRECTORY}"
     cp -R "''${PAYLOAD_DIRECTORY}/." "''${STAGING_DIRECTORY}/"
     : > "''${STAGING_DIRECTORY}/.kpm-${id}"
     rm -rf '${mesquiteDirectory}'
     mv "''${STAGING_DIRECTORY}" '${mesquiteDirectory}'
-    trap - EXIT HUP INT TERM
     sqlite3 /var/local/appreg.db <<'SQL'
     INSERT OR IGNORE INTO handlerIds(handlerId) VALUES('${appId}');
     INSERT OR REPLACE INTO properties(handlerId, name, value) VALUES('${appId}', 'lipcId', '${appId}');
     INSERT OR REPLACE INTO properties(handlerId, name, value) VALUES('${appId}', 'command', '/usr/bin/mesquite -l ${appId} -c file://${mesquiteDirectory}/');
     INSERT OR REPLACE INTO properties(handlerId, name, value) VALUES('${appId}', 'supportedOrientation', 'U');
     SQL
+    mv -f "''${SCRIPTLET_STAGE}" "''${SCRIPTLET}"
+    trap - EXIT HUP INT TERM
   '';
   uninstallScript = builtins.toFile "${id}-uninstall.sh" ''
     set -eu
     MARKER='${mesquiteDirectory}/.kpm-${id}'
-    if [ ! -f "''${MARKER}" ]; then
-      exit 0
+    SCRIPTLET='/mnt/us/documents/${scriptletName}'
+    if [ -f "''${SCRIPTLET}" ] && cmp -s 'scriptlets/${scriptletName}' "''${SCRIPTLET}"; then
+      rm -f "''${SCRIPTLET}"
     fi
     if [ "''${1:-}" = upgrade ]; then
+      exit 0
+    fi
+    if [ ! -f "''${MARKER}" ]; then
       exit 0
     fi
     sqlite3 /var/local/appreg.db <<'SQL'
@@ -111,4 +127,10 @@ mkKpackage {
     set -eu
     nohup lipc-set-prop com.lab126.appmgrd start 'app://${appId}' >/dev/null 2>&1 &
   '';
-}
+}).overrideAttrs (previous: {
+  passthru = previous.passthru // {
+    waf = {
+      inherit legacyPaths mesquiteDirectory scriptletName;
+    };
+  };
+})

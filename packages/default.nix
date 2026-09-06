@@ -3,7 +3,7 @@ let
   mkKpackage = import ../lib/mk-kpackage.nix { inherit lib pkgs; };
   packageArguments = {
     inherit mkKpackage;
-    inherit (pkgs) fetchurl;
+    inherit (pkgs) fetchurl writeTextFile;
   };
   packageIds = [
     "toggleads"
@@ -16,6 +16,9 @@ let
     "gargoyle"
   ];
   loadPackage = packageId:
-    import (./. + "/${packageId}/package.nix") packageArguments;
+    let
+      package = import (./. + "/${packageId}/package.nix");
+    in
+    package (lib.intersectAttrs (builtins.functionArgs package) packageArguments);
 in
 lib.concatMap loadPackage packageIds

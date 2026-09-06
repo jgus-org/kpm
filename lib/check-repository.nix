@@ -1,18 +1,8 @@
 { lib, pkgs }:
 { artifacts, repository }:
 let
-  wafDirectory = id: {
-    kpomo = "kpomo";
-    kreate = "kreate";
-    kships = "KShips";
-    kwordle = "kwordle";
-  }.${id};
-  wafLegacyPath = id: {
-    kpomo = "documents/kpomo";
-    kreate = "documents/kreate";
-    kships = "documents/KShips";
-    kwordle = "documents/kwordle";
-  }.${id};
+  expectedArtifactCount = builtins.length artifacts;
+  expectedPackageIds = lib.sort builtins.lessThan (lib.unique (map (artifact: artifact.kpm.id) artifacts));
   checkArtifact = artifact: ''
     ARCHIVE=${lib.escapeShellArg "${artifact}/${artifact.kpm.filename}"}
     test "$(${lib.getExe pkgs.gnutar} -xOf "''${ARCHIVE}" manifest.json)" = ${lib.escapeShellArg artifact.kpm.manifest}
@@ -28,7 +18,8 @@ let
     rm -rf extracted
     mkdir extracted
     ${lib.getExe pkgs.gnutar} -xzf "''${ARCHIVE}" -C extracted
-    if grep -RIl ${lib.escapeShellArg "/nix/store/"} extracted/install.sh extracted/uninstall.sh extracted/launch.sh 2>/dev/null; then
+    if grep -RIl ${lib.escapeShellArg "/nix/store/"} \
+      extracted/install.sh extracted/uninstall.sh extracted/launch.sh extracted/scriptlets 2>/dev/null; then
       exit 1
     fi
     for HOOK in install.sh uninstall.sh launch.sh; do
@@ -37,12 +28,7 @@ let
         ${lib.getExe pkgs.shellcheck} --shell=sh --severity=error "extracted/''${HOOK}"
       fi
     done
-    ${lib.optionalString (lib.elem artifact.kpm.id [
-      "kpomo"
-      "kreate"
-      "kships"
-      "kwordle"
-    ]) ''
+    ${lib.optionalString (artifact ? waf) ''
       FIXTURE_DIRECTORY="''${WORK_DIRECTORY}/fixture-${artifact.kpm.id}"
       mkdir -p "''${FIXTURE_DIRECTORY}/etc" "''${FIXTURE_DIRECTORY}/var/local"
       printf '%s\n' 'Kindle 5.16.2.1.1' > "''${FIXTURE_DIRECTORY}/etc/prettyversion.txt"
@@ -55,26 +41,58 @@ let
         extracted/install.sh > fixture-install.sh
       sed \
         -e "s#/var/local#''${FIXTURE_DIRECTORY}/var/local#g" \
+        -e "s#/mnt/us#''${FIXTURE_DIRECTORY}/mnt/us#g" \
         extracted/uninstall.sh > fixture-uninstall.sh
       (cd extracted && sh ../fixture-install.sh)
-      test -f "''${FIXTURE_DIRECTORY}/var/local/mesquite/${wafDirectory artifact.kpm.id}/.kpm-${artifact.kpm.id}"
+      test -f "''${FIXTURE_DIRECTORY}${artifact.waf.mesquiteDirectory}/.kpm-${artifact.kpm.id}"
+      test -f "''${FIXTURE_DIRECTORY}/mnt/us/documents/${artifact.waf.scriptletName}"
+      cmp "extracted/scriptlets/${artifact.waf.scriptletName}" \
+        "''${FIXTURE_DIRECTORY}/mnt/us/documents/${artifact.waf.scriptletName}"
+      test "$(sed -n '2p' "''${FIXTURE_DIRECTORY}/mnt/us/documents/${artifact.waf.scriptletName}")" = \
+        ${lib.escapeShellArg "exec /var/local/kmc/bin/kpm launch ${artifact.kpm.id}"}
       test "$(sqlite3 "''${FIXTURE_DIRECTORY}/var/local/appreg.db" 'SELECT COUNT(*) FROM handlerIds;')" -eq 1
+      rm "''${FIXTURE_DIRECTORY}/mnt/us/documents/${artifact.waf.scriptletName}"
+      (cd extracted && sh ../fixture-install.sh)
+      test -f "''${FIXTURE_DIRECTORY}/mnt/us/documents/${artifact.waf.scriptletName}"
       (cd extracted && sh ../fixture-uninstall.sh upgrade)
-      test -f "''${FIXTURE_DIRECTORY}/var/local/mesquite/${wafDirectory artifact.kpm.id}/.kpm-${artifact.kpm.id}"
+      test -f "''${FIXTURE_DIRECTORY}${artifact.waf.mesquiteDirectory}/.kpm-${artifact.kpm.id}"
+      test ! -e "''${FIXTURE_DIRECTORY}/mnt/us/documents/${artifact.waf.scriptletName}"
       (cd extracted && sh ../fixture-install.sh upgrade)
+      test -f "''${FIXTURE_DIRECTORY}/mnt/us/documents/${artifact.waf.scriptletName}"
       (cd extracted && sh ../fixture-uninstall.sh)
       test "$(sqlite3 "''${FIXTURE_DIRECTORY}/var/local/appreg.db" 'SELECT COUNT(*) FROM handlerIds;')" -eq 0
-      mkdir -p "''${FIXTURE_DIRECTORY}/var/local/mesquite/${wafDirectory artifact.kpm.id}"
+      test ! -e "''${FIXTURE_DIRECTORY}/mnt/us/documents/${artifact.waf.scriptletName}"
+      rm -rf old-extracted
+      cp -R extracted old-extracted
+      chmod u+w "old-extracted/scriptlets/${artifact.waf.scriptletName}"
+      printf '%s\n' '# DontUseFBInk' \
+        ${lib.escapeShellArg "exec /var/local/kmc/bin/kpm launch ${artifact.kpm.id} old"} \
+        > "old-extracted/scriptlets/${artifact.waf.scriptletName}"
+      (cd old-extracted && sh ../fixture-install.sh)
+      (cd old-extracted && sh ../fixture-uninstall.sh upgrade)
+      test ! -e "''${FIXTURE_DIRECTORY}/mnt/us/documents/${artifact.waf.scriptletName}"
+      (cd extracted && sh ../fixture-install.sh upgrade)
+      cmp "extracted/scriptlets/${artifact.waf.scriptletName}" \
+        "''${FIXTURE_DIRECTORY}/mnt/us/documents/${artifact.waf.scriptletName}"
+      (cd extracted && sh ../fixture-uninstall.sh)
+      mkdir -p "''${FIXTURE_DIRECTORY}${artifact.waf.mesquiteDirectory}"
       if (cd extracted && sh ../fixture-install.sh); then
         exit 1
       fi
-      rm -rf "''${FIXTURE_DIRECTORY}/var/local/mesquite/${wafDirectory artifact.kpm.id}"
-      mkdir -p "''${FIXTURE_DIRECTORY}/mnt/us/${wafLegacyPath artifact.kpm.id}"
+      rm -rf "''${FIXTURE_DIRECTORY}${artifact.waf.mesquiteDirectory}"
+      mkdir -p "''${FIXTURE_DIRECTORY}${builtins.head artifact.waf.legacyPaths}"
       if (cd extracted && sh ../fixture-install.sh); then
         exit 1
       fi
-      test -d "''${FIXTURE_DIRECTORY}/mnt/us/${wafLegacyPath artifact.kpm.id}"
+      test -d "''${FIXTURE_DIRECTORY}${builtins.head artifact.waf.legacyPaths}"
       test "$(sqlite3 "''${FIXTURE_DIRECTORY}/var/local/appreg.db" 'SELECT COUNT(*) FROM handlerIds;')" -eq 0
+      rm -rf "''${FIXTURE_DIRECTORY}${builtins.head artifact.waf.legacyPaths}"
+      mkdir -p "''${FIXTURE_DIRECTORY}/mnt/us/documents"
+      printf '%s\n' foreign > "''${FIXTURE_DIRECTORY}/mnt/us/documents/${artifact.waf.scriptletName}"
+      if (cd extracted && sh ../fixture-install.sh); then
+        exit 1
+      fi
+      test "$(cat "''${FIXTURE_DIRECTORY}/mnt/us/documents/${artifact.waf.scriptletName}")" = foreign
     ''}
   '';
 in
@@ -102,8 +120,8 @@ pkgs.runCommand "kpm-repository-check"
       and (.name | type == "string" and length > 0)
       and (.description | type == "string")
       and (.packages | type == "object")
-      and ((.packages | keys) == ["gargoyle", "kpomo", "kreate", "kships", "kwordle", "larkplayer", "toggleads", "updateblockstatus"])
-      and ([.packages[].artifacts[]] | length == 9)
+      and ((.packages | keys) == ${builtins.toJSON expectedPackageIds})
+      and ([.packages[].artifacts[]] | length == ${toString expectedArtifactCount})
       and all(.packages[];
         (.name | type == "string" and length > 0)
         and (.author | type == "string" and length > 0)

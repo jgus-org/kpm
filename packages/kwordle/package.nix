@@ -1,6 +1,6 @@
-{ mkKpackage, fetchurl }:
+{ mkKpackage, fetchurl, writeTextFile }:
 let
-  mkWafPackage = import ../../lib/mk-waf-package.nix { inherit mkKpackage; };
+  mkWafPackage = import ../../lib/mk-waf-package.nix { inherit mkKpackage writeTextFile; };
   legacySrc = fetchurl {
     url = "https://github.com/crizmo/KWordle/releases/download/v1.6.0/kwordle-legacy.zip";
     hash = "sha256-g86S+hziyaz1NjTxDrKx3hlPaOMUOv3vFjV+sp+WbDE=";
@@ -29,7 +29,18 @@ in
     '';
     payloadDirectory = "payload/modern/kwordle";
     legacyPayloadDirectory = "payload/legacy/kwordle";
+    legacyFirmwareMaximum = [
+      5
+      6
+      1
+      1
+    ];
     mesquiteDirectory = "/var/local/mesquite/kwordle";
     appId = "xyz.kurizu.kwordle";
+    scriptletName = "KWordle.sh";
+    legacyPaths = [
+      "/mnt/us/documents/kwordle"
+      "/mnt/us/documents/kwordle.sh"
+    ];
   })
 ]

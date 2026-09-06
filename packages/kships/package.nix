@@ -1,6 +1,6 @@
-{ mkKpackage, fetchurl }:
+{ mkKpackage, fetchurl, writeTextFile }:
 let
-  mkWafPackage = import ../../lib/mk-waf-package.nix { inherit mkKpackage; };
+  mkWafPackage = import ../../lib/mk-waf-package.nix { inherit mkKpackage writeTextFile; };
 in
 [
   (mkWafPackage {
@@ -25,5 +25,10 @@ in
     payloadDirectory = "payload/KShips";
     mesquiteDirectory = "/var/local/mesquite/KShips";
     appId = "xyz.lotpl.kships";
+    scriptletName = "KShips.sh";
+    legacyPaths = [
+      "/mnt/us/documents/KShips"
+      "/mnt/us/documents/KShips.sh"
+    ];
   })
 ]
