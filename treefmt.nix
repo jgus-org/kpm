@@ -4,5 +4,6 @@
   programs = {
     nixpkgs-fmt.enable = true;
     shfmt.enable = true;
+    yamlfmt.enable = true;
   };
 }
