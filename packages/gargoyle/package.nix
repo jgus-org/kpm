@@ -1,5 +1,12 @@
 { mkKpackage, fetchurl }:
 
+let
+  hfSource = fetchurl {
+    url = "https://www.mobileread.com/forums/attachment.php?attachmentid=214325&d=1741982302";
+    hash = "sha256-f+lYojl0pTqoTNNQpE2npyF60C2L3JsCkhZb12yAzTk=";
+  };
+in
+
 [
   (mkKpackage {
     id = "gargoyle";
@@ -12,14 +19,22 @@
       0
     ];
     platforms = [ "kindlehf" ];
-    src = fetchurl {
-      url = "https://www.mobileread.com/forums/attachment.php?attachmentid=214325&d=1741982302";
-      hash = "sha256-f+lYojl0pTqoTNNQpE2npyF60C2L3JsCkhZb12yAzTk=";
-    };
+    src = hfSource;
     buildPayload = ''
       mkdir -p payload
       unzip -q "''${SOURCE}" -d payload
+      mkdir scriptlets
+      {
+        printf '%s' '# Icon: data:image/png;base64,'
+        base64 -w0 payload/gargoyle/gargoyle.png
+        printf '\n'
+        printf '%s\n' '# DontUseFBInk' 'exec /mnt/us/extensions/gargoyle/gargoyle.sh'
+      } > scriptlets/Gargoyle.sh
     '';
+    scriptlet = {
+      name = "Gargoyle.sh";
+      icon = "payload/gargoyle/gargoyle.png";
+    };
     installScript = ./install.sh;
     uninstallScript = ./uninstall-hf.sh;
   })
@@ -41,7 +56,19 @@
     buildPayload = ''
       mkdir -p payload
       tar -xzf "''${SOURCE}" -C payload
+      mkdir scriptlets
+      {
+        printf '%s' '# Icon: data:image/png;base64,'
+        unzip -p "${hfSource}" gargoyle/gargoyle.png | base64 -w0
+        printf '\n'
+        printf '%s\n' '# DontUseFBInk' 'exec /mnt/us/extensions/gargoyle/gargoyle.sh'
+      } > scriptlets/Gargoyle.sh
+      unzip -p "${hfSource}" gargoyle/gargoyle.png > scriptlets/gargoyle.png
     '';
+    scriptlet = {
+      name = "Gargoyle.sh";
+      icon = "scriptlets/gargoyle.png";
+    };
     installScript = ./install.sh;
     uninstallScript = ./uninstall-sf.sh;
   })

@@ -26,6 +26,9 @@ in
       mkdir -p payload/modern
       unzip -q "''${SOURCE}" -d payload/modern
       unzip -q "${legacySrc}" -d payload/legacy
+      unzip -p "''${SOURCE}" kwordle.sh \
+        | sed -n 's|^# Icon: data:image/png;base64,||p' \
+        | base64 -d > payload/kwordle-cover.png
     '';
     payloadDirectory = "payload/modern/kwordle";
     legacyPayloadDirectory = "payload/legacy/kwordle";
@@ -38,6 +41,10 @@ in
     mesquiteDirectory = "/var/local/mesquite/kwordle";
     appId = "xyz.kurizu.kwordle";
     scriptletName = "KWordle.sh";
+    scriptletIcon = {
+      path = "payload/kwordle-cover.png";
+      mediaSubtype = "png";
+    };
     legacyPaths = [
       "/mnt/us/documents/kwordle"
       "/mnt/us/documents/kwordle.sh"

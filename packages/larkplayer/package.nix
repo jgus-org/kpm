@@ -20,6 +20,11 @@
       mkdir -p payload
       unzip -q "''${SOURCE}" -d payload
     '';
+    scriptlet = {
+      name = "lark.sh";
+      path = "payload/documents/lark.sh";
+      icon = null;
+    };
     installScript = ./install.sh;
     uninstallScript = ./uninstall.sh;
   })

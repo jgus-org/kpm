@@ -12,6 +12,7 @@
 , installScript ? null
 , uninstallScript ? null
 , launchScript ? null
+, scriptlet ? null
 ,
 }:
 assert builtins.match "[a-z0-9_-]+" id != null;
@@ -50,9 +51,11 @@ pkgs.runCommand "${id}-${versionString}-${platformString}"
     pkgs.gzip
     pkgs.unzip
   ] ++ buildInputs;
-  passthru.kpm = {
-    inherit id name author description version platforms dependencies filename manifest;
-  };
+  passthru = {
+    kpm = {
+      inherit id name author description version platforms dependencies filename manifest;
+    };
+  } // lib.optionalAttrs (scriptlet != null) { inherit scriptlet; };
 }
   ''
     OUTPUT_DIRECTORY=${lib.escapeShellArg (builtins.placeholder "out")}

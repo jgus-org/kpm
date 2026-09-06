@@ -3,17 +3,23 @@
 set -eu
 
 APPLICATION_DIRECTORY=/mnt/us/extensions/gargoyle
+SCRIPTLET=/mnt/us/documents/Gargoyle.sh
 OWNER_FILE=${APPLICATION_DIRECTORY}/.kpm-owner
 STAGING_DIRECTORY=/mnt/us/extensions/.kpm-gargoyle-new-${$}
 BACKUP_DIRECTORY=/mnt/us/extensions/.kpm-gargoyle-old-${$}
+SCRIPTLET_STAGING=/mnt/us/documents/.kpm-gargoyle-scriptlet-${$}
 OWNED=0
 BACKED_UP=0
 INSTALLED=0
+SCRIPTLET_INSTALLED=0
 
 cleanup() {
   trap - EXIT HUP INT TERM
   if [ "${INSTALLED}" -eq 1 ]; then
     rm -rf "${APPLICATION_DIRECTORY}"
+  fi
+  if [ "${SCRIPTLET_INSTALLED}" -eq 1 ] && [ -f "${SCRIPTLET}" ] && cmp -s scriptlets/Gargoyle.sh "${SCRIPTLET}"; then
+    rm -f "${SCRIPTLET}"
   fi
   if [ "${BACKED_UP}" -eq 1 ]; then
     if [ -e "${BACKUP_DIRECTORY}" ]; then
@@ -22,6 +28,7 @@ cleanup() {
     fi
   fi
   rm -rf "${STAGING_DIRECTORY}" "${BACKUP_DIRECTORY}"
+  rm -f "${SCRIPTLET_STAGING}"
 }
 
 trap cleanup EXIT HUP INT TERM
@@ -30,6 +37,11 @@ if [ -f "${OWNER_FILE}" ] && { [ "$(cat "${OWNER_FILE}")" = installed ] || [ "$(
   OWNED=1
 elif [ -e "${APPLICATION_DIRECTORY}" ]; then
   echo "Gargoyle files already exist" >&2
+  exit 1
+fi
+
+if [ -e "${SCRIPTLET}" ] && ! cmp -s scriptlets/Gargoyle.sh "${SCRIPTLET}"; then
+  echo 'existing Gargoyle.sh is not owned by this package' >&2
   exit 1
 fi
 
@@ -65,6 +77,10 @@ fi
 printf '%s' installed >"${STAGING_DIRECTORY}/.kpm-owner"
 mv "${STAGING_DIRECTORY}" "${APPLICATION_DIRECTORY}"
 INSTALLED=1
+mkdir -p /mnt/us/documents
+cp scriptlets/Gargoyle.sh "${SCRIPTLET_STAGING}"
+mv "${SCRIPTLET_STAGING}" "${SCRIPTLET}"
+SCRIPTLET_INSTALLED=1
 rm -rf "${BACKUP_DIRECTORY}"
 BACKED_UP=0
 INSTALLED=0

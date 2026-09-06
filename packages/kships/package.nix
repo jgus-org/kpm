@@ -21,11 +21,18 @@ in
     buildPayload = ''
       mkdir -p payload
       unzip -q "''${SOURCE}" -d payload
+      unzip -p "''${SOURCE}" KShips.sh \
+        | sed -n 's|^# Icon: data:image/png;base64,||p' \
+        | base64 -d > payload/kships-cover.png
     '';
     payloadDirectory = "payload/KShips";
     mesquiteDirectory = "/var/local/mesquite/KShips";
     appId = "xyz.lotpl.kships";
     scriptletName = "KShips.sh";
+    scriptletIcon = {
+      path = "payload/kships-cover.png";
+      mediaSubtype = "png";
+    };
     legacyPaths = [
       "/mnt/us/documents/KShips"
       "/mnt/us/documents/KShips.sh"

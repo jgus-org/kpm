@@ -21,11 +21,18 @@ in
     buildPayload = ''
       mkdir -p payload
       unzip -q "''${SOURCE}" -d payload
+      unzip -p "''${SOURCE}" kreate/kreate.sh \
+        | sed -n 's|^# Icon: data:image/png;base64,||p' \
+        | base64 -d > payload/kreate-cover.png
     '';
     payloadDirectory = "payload/kreate";
     mesquiteDirectory = "/var/local/mesquite/kreate";
     appId = "xyz.foskya.kreate";
     scriptletName = "Kreate.sh";
+    scriptletIcon = {
+      path = "payload/kreate-cover.png";
+      mediaSubtype = "png";
+    };
     legacyPaths = [ "/mnt/us/documents/kreate" ];
   })
 ]

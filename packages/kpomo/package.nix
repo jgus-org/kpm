@@ -26,6 +26,9 @@ in
       mkdir -p payload/modern
       unzip -q "''${SOURCE}" -d payload/modern
       unzip -q "${legacySrc}" -d payload/legacy
+      unzip -p "''${SOURCE}" kpomo.sh \
+        | sed -n 's|^# Icon: data:image/png;base64,||p' \
+        | base64 -d > payload/kpomo-cover.png
     '';
     payloadDirectory = "payload/modern/kpomo";
     legacyPayloadDirectory = "payload/legacy/kpomo";
@@ -38,6 +41,10 @@ in
     mesquiteDirectory = "/var/local/mesquite/kpomo";
     appId = "xyz.kurizu.kpomo";
     scriptletName = "KPomo.sh";
+    scriptletIcon = {
+      path = "payload/kpomo-cover.png";
+      mediaSubtype = "png";
+    };
     legacyPaths = [
       "/mnt/us/documents/kpomo"
       "/mnt/us/documents/kpomo.sh"

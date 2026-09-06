@@ -28,6 +28,28 @@ let
         ${lib.getExe pkgs.shellcheck} --shell=sh --severity=error "extracted/''${HOOK}"
       fi
     done
+    ${lib.optionalString (artifact ? scriptlet) ''
+      SCRIPTLET=${lib.escapeShellArg "extracted/${artifact.scriptlet.path or "scriptlets/${artifact.scriptlet.name}"}"}
+      test -f "''${SCRIPTLET}"
+      sh -n "''${SCRIPTLET}"
+    ''}
+    ${lib.optionalString (artifact ? scriptlet && artifact.scriptlet ? icon) ''
+      SCRIPTLET=${lib.escapeShellArg "extracted/${artifact.scriptlet.path or "scriptlets/${artifact.scriptlet.name}"}"}
+      ICON_LINE="$(sed -n '1,6{s/^# Icon: //p;}' "''${SCRIPTLET}")"
+      test "$(printf '%s\n' "''${ICON_LINE}" | wc -l)" -eq 1
+      case "''${ICON_LINE}" in
+        data:image/png\;base64,*|data:image/jpeg\;base64,*) ;;
+        *) exit 1 ;;
+      esac
+      printf '%s' "''${ICON_LINE#*,}" | ${lib.getExe' pkgs.coreutils "base64"} --decode > decoded-icon
+      case "''${ICON_LINE}:$(${lib.getExe' pkgs.imagemagick "identify"} -format '%m' decoded-icon)" in
+        data:image/png\;base64,*:PNG|data:image/jpeg\;base64,*:JPEG) ;;
+        *) exit 1 ;;
+      esac
+      ${lib.optionalString (artifact.scriptlet.icon != null) ''
+        cmp decoded-icon ${lib.escapeShellArg "extracted/${artifact.scriptlet.icon}"}
+      ''}
+    ''}
     ${lib.optionalString (artifact ? waf) ''
       FIXTURE_DIRECTORY="''${WORK_DIRECTORY}/fixture-${artifact.kpm.id}"
       mkdir -p "''${FIXTURE_DIRECTORY}/etc" "''${FIXTURE_DIRECTORY}/var/local"
@@ -48,8 +70,8 @@ let
       test -f "''${FIXTURE_DIRECTORY}/mnt/us/documents/${artifact.waf.scriptletName}"
       cmp "extracted/scriptlets/${artifact.waf.scriptletName}" \
         "''${FIXTURE_DIRECTORY}/mnt/us/documents/${artifact.waf.scriptletName}"
-      test "$(sed -n '2p' "''${FIXTURE_DIRECTORY}/mnt/us/documents/${artifact.waf.scriptletName}")" = \
-        ${lib.escapeShellArg "exec /var/local/kmc/bin/kpm launch ${artifact.kpm.id}"}
+      grep -Fx ${lib.escapeShellArg "exec /var/local/kmc/bin/kpm launch ${artifact.kpm.id}"} \
+        "''${FIXTURE_DIRECTORY}/mnt/us/documents/${artifact.waf.scriptletName}"
       test "$(sqlite3 "''${FIXTURE_DIRECTORY}/var/local/appreg.db" 'SELECT COUNT(*) FROM handlerIds;')" -eq 1
       rm "''${FIXTURE_DIRECTORY}/mnt/us/documents/${artifact.waf.scriptletName}"
       (cd extracted && sh ../fixture-install.sh)
@@ -102,6 +124,7 @@ pkgs.runCommand "kpm-repository-check"
     pkgs.coreutils
     pkgs.gnugrep
     pkgs.gnutar
+    pkgs.imagemagick
     pkgs.jq
     pkgs.shellcheck
     pkgs.sqlite

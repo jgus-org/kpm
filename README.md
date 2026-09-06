@@ -2,7 +2,7 @@
 
 This repository ports packages from the original [KindleForge package repository](https://github.com/KindleTweaks/Repository) for the current Kindle Package Manager (KPM) catalog.
 
-Physical-device compatibility has not yet been verified here.
+KWordle installation and its Home screen launcher have been verified on a physical Kindle. Other package and device combinations remain unverified.
 
 ## Before you start
 
@@ -31,6 +31,8 @@ The first command adds this repository once. Replace `<package>` with the ID of 
 | `larkplayer` | LARKPlayer | Audiobook reader |
 | `toggleads` | Toggle ADs | Toggle Kindle advertisements |
 | `updateblockstatus` | UpdateBlock Status | Show OTA update-blocker status |
+
+Installed packages appear in Library with the upstream cover art included by their packages. Toggle ADs, UpdateBlock Status, and Gargoyle also install Home screen launchers.
 
 ## Everyday use
 

@@ -18,7 +18,19 @@
     buildPayload = ''
       mkdir -p payload
       cp "''${SOURCE}" payload/updateblock.sh
+      sed -n 's/^# Icon: data:image\/png;base64,//p' "''${SOURCE}" | base64 -d > payload/updateblock.png
+      mkdir scriptlets
+      {
+        sed -n '/^# Icon: data:image\/png;base64,/p' "''${SOURCE}"
+        printf '%s\n' '# DontUseFBInk' 'exec /var/local/kmc/bin/kpm launch updateblockstatus'
+      } > scriptlets/updateblock.sh
     '';
+    scriptlet = {
+      name = "updateblock.sh";
+      icon = "payload/updateblock.png";
+    };
+    installScript = ./install.sh;
+    uninstallScript = ./uninstall.sh;
     launchScript = ./launch.sh;
   })
 ]

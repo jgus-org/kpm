@@ -3,6 +3,9 @@
 set -eu
 
 if [ "${1:-}" = upgrade ]; then
+  if [ -f /mnt/us/documents/Gargoyle.sh ] && cmp -s scriptlets/Gargoyle.sh /mnt/us/documents/Gargoyle.sh; then
+    rm -f /mnt/us/documents/Gargoyle.sh
+  fi
   if [ -f /mnt/us/extensions/gargoyle/.kpm-owner ] && [ "$(cat /mnt/us/extensions/gargoyle/.kpm-owner)" = installed ]; then
     printf '%s' retained >/mnt/us/extensions/gargoyle/.kpm-owner
   fi
@@ -40,6 +43,9 @@ rm -f /mnt/us/extensions/gargoyle/samples/garglk.ini /mnt/us/extensions/gargoyle
 rm -f /mnt/us/extensions/gargoyle/config.xml /mnt/us/extensions/gargoyle/gargoyle.sh /mnt/us/extensions/gargoyle/menu.json
 rm -f /mnt/us/extensions/gargoyle/.kpm-owner
 rmdir /mnt/us/extensions/gargoyle/dist /mnt/us/extensions/gargoyle/samples /mnt/us/extensions/gargoyle 2>/dev/null || true
+if [ -f /mnt/us/documents/Gargoyle.sh ] && cmp -s scriptlets/Gargoyle.sh /mnt/us/documents/Gargoyle.sh; then
+  rm -f /mnt/us/documents/Gargoyle.sh
+fi
 if [ -d /mnt/us/extensions/gargoyle ]; then
   printf '%s' retained >/mnt/us/extensions/gargoyle/.kpm-owner
 fi

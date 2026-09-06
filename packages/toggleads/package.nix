@@ -18,7 +18,19 @@
     buildPayload = ''
       mkdir -p payload
       cp "''${SOURCE}" payload/toggle-ads.sh
+      sed -n 's/^# Icon: data:image\/png;base64,//p' "''${SOURCE}" | base64 -d > payload/toggle-ads.png
+      mkdir scriptlets
+      {
+        sed -n '/^# Icon: data:image\/png;base64,/p' "''${SOURCE}"
+        printf '%s\n' '# DontUseFBInk' 'exec /var/local/kmc/bin/kpm launch toggleads'
+      } > scriptlets/toggle-ads.sh
     '';
+    scriptlet = {
+      name = "toggle-ads.sh";
+      icon = "payload/toggle-ads.png";
+    };
+    installScript = ./install.sh;
+    uninstallScript = ./uninstall.sh;
     launchScript = ./launch.sh;
   })
 ]

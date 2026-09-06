@@ -12,15 +12,20 @@
 , appId
 , scriptletName
 , legacyPaths
+, scriptletIcon ? null
 , legacyPayloadDirectory ? null
 , legacyFirmwareMaximum ? null
 ,
 }:
 assert (legacyPayloadDirectory == null) == (legacyFirmwareMaximum == null);
 assert legacyFirmwareMaximum == null || builtins.length legacyFirmwareMaximum == 4;
+assert scriptletIcon == null || (
+  builtins.isString scriptletIcon.path
+    && builtins.match "[a-z0-9.+-]+" scriptletIcon.mediaSubtype != null
+);
 let
   mesquiteParent = builtins.dirOf mesquiteDirectory;
-  scriptlet = writeTextFile {
+  scriptletBody = writeTextFile {
     name = "${id}-scriptlet.sh";
     text = ''
       # DontUseFBInk
@@ -31,10 +36,24 @@ let
 in
 (mkKpackage {
   inherit id name author description version platforms src;
+  scriptlet =
+    if scriptletIcon == null then {
+      name = scriptletName;
+    } else {
+      name = scriptletName;
+      icon = scriptletIcon.path;
+    };
   buildPayload = ''
     ${buildPayload}
     mkdir -p scriptlets
-    cp '${scriptlet}' 'scriptlets/${scriptletName}'
+    ${if scriptletIcon == null then
+      "cp '${scriptletBody}' 'scriptlets/${scriptletName}'"
+    else ''
+      printf '%s' '# Icon: data:image/${scriptletIcon.mediaSubtype};base64,' > 'scriptlets/${scriptletName}'
+      base64 --wrap=0 '${scriptletIcon.path}' >> 'scriptlets/${scriptletName}'
+      printf '\n' >> 'scriptlets/${scriptletName}'
+      cat '${scriptletBody}' >> 'scriptlets/${scriptletName}'
+    ''}
   '';
   installScript = builtins.toFile "${id}-install.sh" ''
     set -eu
