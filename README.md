@@ -51,6 +51,8 @@ The first command adds this repository once. Replace `<package>` with the ID of 
 
 Packages install Library launchers and upstream cover art where available.
 
+Developers can find the automated-test scope and commands in [tests/README.md](tests/README.md).
+
 ## Everyday use
 
 Use the Kindle search bar for KPM commands. Replace `kwordle` with a package ID from the table above when appropriate.

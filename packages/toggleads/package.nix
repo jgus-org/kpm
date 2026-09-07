@@ -1,4 +1,16 @@
 { mkKpackage, fetchurl, pkgs }:
+let
+  consumerSqlite = pkgs.writeShellScript "toggleads-consumer-sqlite" ''
+    DATABASE="''${1}"
+    QUERY="''${2}"
+    printf '%s\n' \
+      '.output /dev/null' \
+      '.dbconfig dqs_dml on' \
+      '.output stdout' \
+      "''${QUERY}" \
+      | ${pkgs.lib.getExe pkgs.sqlite} "''${DATABASE}"
+  '';
+in
 [
   (mkKpackage {
     id = "toggleads";
@@ -32,9 +44,38 @@
     installScript = ./install.sh;
     uninstallScript = ./uninstall.sh;
     launchScript = ./launch.sh;
-    passthru.tests.callback = pkgs.runCommand "toggleads-callback-check" { } ''
-      sh ${./check-callback.sh} ${./install.sh} ${./uninstall.sh}
-      touch "''${out}"
-    '';
+    passthru = {
+      consumer.cases = pkgs.lib.genAttrs [ "kindlehf" "kindlepw2" ] (_: {
+        launches = [
+          {
+            mode = "maintenance";
+            args = [ ];
+            boundaries = [
+              "Kindle SQLite DQS mode shim"
+              "reboot service shim"
+            ];
+            actualApplicationExecution = true;
+            pathPrefix = [ "/var/lib/kpm-consumer/toggleads/bin" ];
+            setup = ''
+              mkdir -p /var/lib/kpm-consumer/toggleads/bin
+              ln -sf ${consumerSqlite} /var/lib/kpm-consumer/toggleads/bin/sqlite3
+              sqlite3 /var/local/appreg.db \
+                "INSERT INTO properties(handlerId, name, value) VALUES('com.lab126.test', 'adunit.viewable', 'false');"
+              rm -f /var/lib/kpm-consumer/boundary.log
+            '';
+            verify = [
+              "test \"$(sqlite3 /var/local/appreg.db \"SELECT value FROM properties WHERE name = 'adunit.viewable';\")\" = true"
+              "grep -F -- reboot /var/lib/kpm-consumer/boundary.log"
+            ];
+          }
+        ];
+        installAssertions = "test -f /mnt/us/documents/toggle-ads.sh";
+        uninstallAssertions = "test ! -e /mnt/us/documents/toggle-ads.sh";
+      });
+      tests.callback = pkgs.runCommand "toggleads-callback-check" { } ''
+        sh ${./check-callback.sh} ${./install.sh} ${./uninstall.sh}
+        touch "''${out}"
+      '';
+    };
   })
 ]

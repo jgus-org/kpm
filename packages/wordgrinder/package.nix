@@ -69,6 +69,40 @@ in
       icon = "payload/wordgrinder/wordgrinder-cover.png";
       installedIcon = "/mnt/us/wordgrinder/wordgrinder-cover.png";
     };
-    passthru.native = nativePackage.passthru;
+    passthru = {
+      native = nativePackage.passthru;
+      consumer.cases = {
+        kindlehf.launches = [
+          {
+            mode = "dispatch";
+            args = [ ];
+            boundaries = [ "kTerm terminal dispatch" ];
+            actualApplicationExecution = false;
+            setup = "rm -f /var/lib/kpm-consumer/kterm.log";
+            verify = "grep -Fx -- '-e env HOME=/mnt/us sh /mnt/us/wordgrinder/start_wordgrinder.sh -k 0 -o R' /var/lib/kpm-consumer/kterm.log";
+          }
+        ];
+        kindlepw2.launches = [
+          {
+            mode = "dispatch";
+            args = [ ];
+            boundaries = [ "kTerm terminal dispatch" ];
+            actualApplicationExecution = false;
+            setup = "rm -f /var/lib/kpm-consumer/kterm.log";
+            verify = "grep -Fx -- '-e env HOME=/mnt/us sh /mnt/us/wordgrinder/start_wordgrinder.sh -k 0 -o R' /var/lib/kpm-consumer/kterm.log";
+          }
+        ];
+      };
+      abi.runtimeContexts = [
+        {
+          path = "payload/wordgrinder/wordgrinder";
+          libraryPaths = [ "payload/wordgrinder/libs_hf" ];
+        }
+        {
+          path = "payload/wordgrinder/wordgrinder_pw2";
+          libraryPaths = [ "payload/wordgrinder/libs_pw2" ];
+        }
+      ];
+    };
   })
 ]

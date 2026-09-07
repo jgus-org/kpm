@@ -22,6 +22,9 @@ let
       }
     ];
   };
+  consumerMntroot = pkgs.writeShellScript "kual-consumer-mntroot" ''
+    printf '%s\n' "''${*}" >> /var/lib/kpm-consumer/kual-mntroot.log
+  '';
 in
 [
   (mkKpackage {
@@ -63,6 +66,43 @@ in
     };
     passthru = {
       native = native.passthru;
+      consumer.cases = pkgs.lib.genAttrs [ "kindlehf" "kindlepw2" ] (_: {
+        launches = [
+          {
+            mode = "maintenance";
+            args = [ ];
+            boundaries = [
+              "root-mount service shim"
+              "LIPC app manager dispatch"
+            ];
+            actualApplicationExecution = true;
+            pathPrefix = [ "/var/lib/kpm-consumer/kual/bin" ];
+            setup = ''
+              mkdir -p /opt/amazon/ebook/booklet /var/local/kmc/hotfix /var/lib/kpm-consumer/kual/bin
+              printf '%s\n' 'HOTFIX_VERSION="2.3.7"' > /var/local/kmc/hotfix/libhotfixutils
+              ln -sf ${consumerMntroot} /var/lib/kpm-consumer/kual/bin/mntroot
+              rm -f /opt/amazon/ebook/booklet/KUALBooklet.jar \
+                /opt/amazon/ebook/booklet/.kpm-peki-kual \
+                /var/lib/kpm-consumer/kual-mntroot.log \
+                /var/lib/kpm-consumer/lipc-set-prop.log
+            '';
+            verify = [
+              "cmp /mnt/us/documents/PEKI/KUAL.jar /opt/amazon/ebook/booklet/KUALBooklet.jar"
+              "test \"$(cat /opt/amazon/ebook/booklet/.kpm-peki-kual)\" = installed"
+              "grep -Fx -- rw /var/lib/kpm-consumer/kual-mntroot.log"
+              "grep -Fx -- ro /var/lib/kpm-consumer/kual-mntroot.log"
+              "test \"$(sqlite3 /var/local/appreg.db \"SELECT COUNT(*) FROM handlerIds WHERE handlerId = 'com.mobileread.ixtab.kindlelauncher';\")\" = 1"
+              "grep -F -- 'com.lab126.appmgrd start app://com.mobileread.ixtab.kindlelauncher' /var/lib/kpm-consumer/lipc-set-prop.log"
+            ];
+          }
+        ];
+        uninstallAssertions = [
+          "test -f /opt/amazon/ebook/booklet/KUALBooklet.jar"
+          "test -f /opt/amazon/ebook/booklet/.kpm-peki-kual"
+          "test \"$(sqlite3 /var/local/appreg.db \"SELECT COUNT(*) FROM handlerIds WHERE handlerId = 'com.mobileread.ixtab.kindlelauncher';\")\" = 1"
+          "rm -f /opt/amazon/ebook/booklet/KUALBooklet.jar /opt/amazon/ebook/booklet/.kpm-peki-kual"
+        ];
+      });
       tests.recovery = pkgs.runCommand "peki-recovery-check" { } ''
         sh ${./check-recovery.sh} ${./peki.sh}
         touch "''${out}"

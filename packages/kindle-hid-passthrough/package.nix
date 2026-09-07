@@ -79,6 +79,13 @@ let
       test ! -e "''${FIXTURE_DIRECTORY}/started"
       touch "''${out}"
     '';
+  consumerExecutable = pkgs.writeShellScript "kindle-hid-passthrough-consumer-recorder" ''
+    printf '%s\n' "''${*}" >> /var/lib/kpm-consumer/kindle-hid-passthrough-exec.log
+  '';
+  consumerPgrep = pkgs.writeShellScript "kindle-hid-passthrough-consumer-pgrep" ''
+    printf '%s\n' "''${*}" >> /var/lib/kpm-consumer/kindle-hid-passthrough-pgrep.log
+    exit 1
+  '';
 in
 [
   (mkWafPackage {
@@ -111,9 +118,61 @@ in
       fi
     '';
     lifecycleFailureFixture = true;
-    passthru.tests = {
-      moduleGate = moduleGateCheck;
-      runtime = runtimeCheck;
+    passthru = {
+      consumer.cases.kindlehf = {
+        launches = [
+          {
+            mode = "dispatch";
+            args = [ ];
+            boundaries = [
+              "existing uhid device fixture"
+              "packaged ARM daemon executable recorder"
+              "LIPC app manager dispatch"
+            ];
+            actualApplicationExecution = false;
+            pathPrefix = [ "/var/lib/kpm-consumer/kindle-hid-passthrough/bin" ];
+            setup = ''
+              mkdir -p /var/lib/kpm-consumer/kindle-hid-passthrough/bin
+              ln -sf ${consumerPgrep} /var/lib/kpm-consumer/kindle-hid-passthrough/bin/pgrep
+              mv /mnt/us/kindle_hid_passthrough/kindle-hid-passthrough \
+                /mnt/us/kindle_hid_passthrough/kindle-hid-passthrough.consumer-original
+              ln -s ${consumerExecutable} /mnt/us/kindle_hid_passthrough/kindle-hid-passthrough
+              touch /dev/uhid
+              rm -f /var/lib/kpm-consumer/kindle-hid-passthrough-exec.log \
+                /var/lib/kpm-consumer/kindle-hid-passthrough-pgrep.log \
+                /var/lib/kpm-consumer/lipc-set-prop.log
+            '';
+            verify = [
+              "grep -Fx -- '--daemon' /var/lib/kpm-consumer/kindle-hid-passthrough-exec.log"
+              "grep -F -- 'com.lab126.appmgrd start app://com.lzampier.btmanager' /var/lib/kpm-consumer/lipc-set-prop.log"
+            ];
+            cleanup = ''
+              rm /mnt/us/kindle_hid_passthrough/kindle-hid-passthrough /dev/uhid
+              mv /mnt/us/kindle_hid_passthrough/kindle-hid-passthrough.consumer-original \
+                /mnt/us/kindle_hid_passthrough/kindle-hid-passthrough
+            '';
+          }
+        ];
+        installAssertions = "test -x /mnt/us/kindle_hid_passthrough/kindle-hid-passthrough";
+        uninstallAssertions = [
+          "test \"$(cat /mnt/us/kindle_hid_passthrough/.kpm-kindle-hid-passthrough)\" = retained"
+          "test ! -e /mnt/us/kindle_hid_passthrough/kindle-hid-passthrough"
+        ];
+      };
+      tests = {
+        moduleGate = moduleGateCheck;
+        runtime = runtimeCheck;
+      };
+      abi.runtimeContexts = [
+        {
+          pathPrefix = "payload/dist/";
+          loader = {
+            kind = "package";
+            path = "payload/dist/ld-linux-armhf.so.3";
+          };
+          libraryPaths = [ "payload/dist" ];
+        }
+      ];
     };
     buildPayload = ''
       mkdir payload

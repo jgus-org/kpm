@@ -43,6 +43,7 @@ in
       sed -n 's|^# Icon: data:image/png;base64,||p' payload/ranki/shortcut_ranki.sh \
         | base64 -d > payload/ranki/ranki-cover.png
       rm payload/ranki/shortcut_ranki.sh
+      chmod 755 payload/ranki/ranki.sh
       printf '%s\n' \
         '# Name: RAnki' \
         '# Icon: /mnt/us/extensions/ranki/ranki-cover.png' \
@@ -60,6 +61,52 @@ in
       icon = "payload/ranki/ranki-cover.png";
       installedIcon = "/mnt/us/extensions/ranki/ranki-cover.png";
     };
-    passthru.native = nativePackage.passthru;
+    passthru = {
+      native = nativePackage.passthru;
+      consumer.cases = {
+        kindlehf.launches = [
+          {
+            mode = "dispatch";
+            args = [ ];
+            boundaries = [ "RAnki executable boundary" ];
+            actualApplicationExecution = false;
+            setup = ''
+              TARGET=/mnt/us/extensions/ranki/ranki.sh
+              test -x "''${TARGET}"
+              mv "''${TARGET}" "''${TARGET}.kpm-consumer-original"
+              printf '%s\n' '#!/bin/sh' 'printf "%s %s\n" "''${PWD}" "''${*}" > /var/lib/kpm-consumer/ranki.log' > "''${TARGET}"
+              chmod 755 "''${TARGET}"
+              rm -f /var/lib/kpm-consumer/ranki.log
+            '';
+            verify = "grep -Fx -- '/mnt/us/kmc/kpm/packages/ranki ' /var/lib/kpm-consumer/ranki.log";
+            cleanup = ''
+              TARGET=/mnt/us/extensions/ranki/ranki.sh
+              if [ -e "''${TARGET}.kpm-consumer-original" ]; then mv "''${TARGET}.kpm-consumer-original" "''${TARGET}"; fi
+            '';
+          }
+        ];
+        kindlepw2.launches = [
+          {
+            mode = "dispatch";
+            args = [ ];
+            boundaries = [ "RAnki executable boundary" ];
+            actualApplicationExecution = false;
+            setup = ''
+              TARGET=/mnt/us/extensions/ranki/ranki.sh
+              test -x "''${TARGET}"
+              mv "''${TARGET}" "''${TARGET}.kpm-consumer-original"
+              printf '%s\n' '#!/bin/sh' 'printf "%s %s\n" "''${PWD}" "''${*}" > /var/lib/kpm-consumer/ranki.log' > "''${TARGET}"
+              chmod 755 "''${TARGET}"
+              rm -f /var/lib/kpm-consumer/ranki.log
+            '';
+            verify = "grep -Fx -- '/mnt/us/kmc/kpm/packages/ranki ' /var/lib/kpm-consumer/ranki.log";
+            cleanup = ''
+              TARGET=/mnt/us/extensions/ranki/ranki.sh
+              if [ -e "''${TARGET}.kpm-consumer-original" ]; then mv "''${TARGET}.kpm-consumer-original" "''${TARGET}"; fi
+            '';
+          }
+        ];
+      };
+    };
   })
 ]

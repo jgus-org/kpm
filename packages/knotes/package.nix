@@ -1,4 +1,8 @@
-{ mkKpackage, fetchurl, writeTextFile }:
+{ mkKpackage
+, fetchurl
+, writeTextFile
+,
+}:
 
 let
   mkWafPackage = import ../../lib/mk-waf-package.nix { inherit mkKpackage writeTextFile; };
@@ -14,7 +18,10 @@ in
       0
       0
     ];
-    platforms = [ "kindlehf" "kindlepw2" ];
+    platforms = [
+      "kindlehf"
+      "kindlepw2"
+    ];
     src = fetchurl {
       url = "https://github.com/crizmo/KNotes/releases/download/v1.0-beta.1/KNotes.zip";
       hash = "sha256-uJ81ih+l+JZeaKTz0vweqeNg6HZHbLHUoGjIhFRA5Yg=";
@@ -63,5 +70,27 @@ in
       "/mnt/us/documents/KNotes"
       "/mnt/us/documents/KNotes.sh"
     ];
+    passthru.consumer.cases = {
+      kindlehf.launches = [
+        {
+          mode = "dispatch";
+          args = [ ];
+          boundaries = [ "LIPC app manager dispatch" ];
+          actualApplicationExecution = false;
+          setup = "rm -f /var/lib/kpm-consumer/lipc-set-prop.log";
+          verify = "grep -F -- 'com.lab126.appmgrd start app://xyz.kurizu.knotes' /var/lib/kpm-consumer/lipc-set-prop.log";
+        }
+      ];
+      kindlepw2.launches = [
+        {
+          mode = "dispatch";
+          args = [ ];
+          boundaries = [ "LIPC app manager dispatch" ];
+          actualApplicationExecution = false;
+          setup = "rm -f /var/lib/kpm-consumer/lipc-set-prop.log";
+          verify = "grep -F -- 'com.lab126.appmgrd start app://xyz.kurizu.knotes' /var/lib/kpm-consumer/lipc-set-prop.log";
+        }
+      ];
+    };
   })
 ]

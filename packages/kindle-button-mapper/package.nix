@@ -65,6 +65,9 @@ let
       fi
       touch "''${out}"
     '';
+  consumerMapper = pkgs.writeShellScript "kindle-button-mapper-consumer-recorder" ''
+    printf '%s\n' "''${*}" >> /var/lib/kpm-consumer/kindle-button-mapper-exec.log
+  '';
   assertManagedProcessesStopped = ''
     MANAGED_BINARY='/mnt/us/kindle-button-mapper/kindle-button-mapper'
     for PROCESS_EXE in /proc/[0-9]*/exe; do
@@ -132,9 +135,49 @@ let
         ${stopManagedProcesses}
       fi
     '';
-    passthru.tests = {
-      binary = binaryCheck;
-      lifecycle = lifecycleCheck;
+    passthru = {
+      consumer.cases.kindlehf = {
+        launches = [
+          {
+            mode = "dispatch";
+            args = [ ];
+            boundaries = [
+              "packaged ARM helper executable recorder"
+              "LIPC app manager dispatch"
+            ];
+            actualApplicationExecution = false;
+            setup = ''
+              mv /mnt/us/kindle-button-mapper/kindle-button-mapper \
+                /mnt/us/kindle-button-mapper/kindle-button-mapper.consumer-original
+              ln -s ${consumerMapper} /mnt/us/kindle-button-mapper/kindle-button-mapper
+              rm -f /var/lib/kpm-consumer/kindle-button-mapper-exec.log \
+                /var/lib/kpm-consumer/lipc-set-prop.log
+            '';
+            verify = [
+              "grep -Fx -- '--kpm-start-helper /mnt/us/kindle-button-mapper/config.ini' /var/lib/kpm-consumer/kindle-button-mapper-exec.log"
+              "grep -F -- 'com.lab126.appmgrd start app://com.lzampier.mappermanager' /var/lib/kpm-consumer/lipc-set-prop.log"
+            ];
+            cleanup = ''
+              rm /mnt/us/kindle-button-mapper/kindle-button-mapper
+              mv /mnt/us/kindle-button-mapper/kindle-button-mapper.consumer-original \
+                /mnt/us/kindle-button-mapper/kindle-button-mapper
+            '';
+          }
+        ];
+        installAssertions = [
+          "test -x /mnt/us/kindle-button-mapper/kindle-button-mapper"
+          "test -f /mnt/us/kindle-button-mapper/.kpm-kindle-button-mapper"
+        ];
+        uninstallAssertions = [
+          "test \"$(cat /mnt/us/kindle-button-mapper/.kpm-kindle-button-mapper)\" = retained"
+          "test -f /mnt/us/kindle-button-mapper/config.ini"
+          "test ! -e /mnt/us/kindle-button-mapper/kindle-button-mapper"
+        ];
+      };
+      tests = {
+        binary = binaryCheck;
+        lifecycle = lifecycleCheck;
+      };
     };
     buildPayload = ''
       mkdir -p payload/application payload/manager

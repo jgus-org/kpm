@@ -84,6 +84,30 @@ in
       path = "scriptlets/KindleFetch.sh";
       icon = null;
     };
-    passthru.native = nativePackage.passthru;
+    passthru = {
+      native = nativePackage.passthru;
+      consumer.cases = {
+        kindlehf.launches = [
+          {
+            mode = "dispatch";
+            args = [ ];
+            boundaries = [ "kTerm terminal dispatch" ];
+            actualApplicationExecution = false;
+            setup = "rm -f /var/lib/kpm-consumer/kterm.log";
+            verify = "grep -Fx -- '-e bash /mnt/us/extensions/kindlefetch/bin/kindlefetch.sh -k 1 -o U -s 7' /var/lib/kpm-consumer/kterm.log";
+          }
+        ];
+        kindlepw2.launches = [
+          {
+            mode = "dispatch";
+            args = [ ];
+            boundaries = [ "kTerm terminal dispatch" ];
+            actualApplicationExecution = false;
+            setup = "rm -f /var/lib/kpm-consumer/kterm.log";
+            verify = "grep -Fx -- '-e bash /mnt/us/extensions/kindlefetch/bin/kindlefetch.sh -k 1 -o U -s 7' /var/lib/kpm-consumer/kterm.log";
+          }
+        ];
+      };
+    };
   })
 ]

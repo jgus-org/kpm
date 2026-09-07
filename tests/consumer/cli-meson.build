@@ -1,0 +1,10 @@
+sources = files(
+  'internal_utils.c',
+  'io.c',
+  'main.c',
+)
+include_dir = include_directories('./include')
+fbink = static_library('fbink', '../stubs/fbink.c', include_directories: '../stubs')
+fbink_dep = declare_dependency(link_with: fbink, include_directories: '../stubs')
+
+executable('kpm', sources, include_directories: include_dir, dependencies: [ kpm_dep, fbink_dep ])

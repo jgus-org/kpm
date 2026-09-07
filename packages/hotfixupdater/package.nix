@@ -30,6 +30,10 @@ let
       }
     ];
   };
+  consumerCurl = pkgs.writeShellScript "hotfixupdater-consumer-curl" ''
+    printf '%s\n' "''${*}" >> /var/lib/kpm-consumer/hotfixupdater-curl.log
+    printf '%s\n' '{"tag_name":"v2.3.7"}'
+  '';
 in
 [
   (mkKpackage {
@@ -71,6 +75,31 @@ in
     };
     passthru = {
       native = native.passthru;
+      consumer.cases = pkgs.lib.genAttrs [ "kindlehf" "kindlepw2" ] (_: {
+        launches = [
+          {
+            mode = "maintenance";
+            args = [ ];
+            boundaries = [
+              "pinned release-metadata service shim"
+              "LIPC alert service shim"
+            ];
+            actualApplicationExecution = true;
+            pathPrefix = [ "/var/lib/kpm-consumer/hotfixupdater/bin" ];
+            setup = ''
+              mkdir -p /var/local/kmc/hotfix /var/lib/kpm-consumer/hotfixupdater/bin
+              printf '%s\n' 'HOTFIX_VERSION="2.3.7"' > /var/local/kmc/hotfix/libhotfixutils
+              ln -sf ${consumerCurl} /var/lib/kpm-consumer/hotfixupdater/bin/curl
+              rm -f /var/lib/kpm-consumer/hotfixupdater-curl.log /var/lib/kpm-consumer/lipc-set-prop.log
+            '';
+            verify = [
+              "grep -F -- '-fsL https://api.github.com/repos/KindleModding/Hotfix/releases/latest' /var/lib/kpm-consumer/hotfixupdater-curl.log"
+              "grep -F -- 'HotfixUpdater - Success' /var/lib/kpm-consumer/lipc-set-prop.log"
+              "test ! -e /mnt/us/documents/HotfixUpdater/Update.bin"
+            ];
+          }
+        ];
+      });
       tests.recovery = pkgs.runCommand "hotfixupdater-recovery-check"
         {
           nativeBuildInputs = [ pkgs.unzip ];

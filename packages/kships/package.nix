@@ -1,4 +1,8 @@
-{ mkKpackage, fetchurl, writeTextFile }:
+{ mkKpackage
+, fetchurl
+, writeTextFile
+,
+}:
 let
   mkWafPackage = import ../../lib/mk-waf-package.nix { inherit mkKpackage writeTextFile; };
 in
@@ -13,7 +17,10 @@ in
       5
       6
     ];
-    platforms = [ "kindlehf" "kindlepw2" ];
+    platforms = [
+      "kindlehf"
+      "kindlepw2"
+    ];
     src = fetchurl {
       url = "https://github.com/LOT-PL/KShips/releases/download/1.5.6/KShips.zip";
       hash = "sha256-j88Nl9hsJUxYohUXHQTCkAHdAg8oes4XNUVANaNPnrE=";
@@ -37,5 +44,27 @@ in
       "/mnt/us/documents/KShips"
       "/mnt/us/documents/KShips.sh"
     ];
+    passthru.consumer.cases = {
+      kindlehf.launches = [
+        {
+          mode = "dispatch";
+          args = [ ];
+          boundaries = [ "LIPC app manager dispatch" ];
+          actualApplicationExecution = false;
+          setup = "rm -f /var/lib/kpm-consumer/lipc-set-prop.log";
+          verify = "grep -F -- 'com.lab126.appmgrd start app://xyz.lotpl.kships' /var/lib/kpm-consumer/lipc-set-prop.log";
+        }
+      ];
+      kindlepw2.launches = [
+        {
+          mode = "dispatch";
+          args = [ ];
+          boundaries = [ "LIPC app manager dispatch" ];
+          actualApplicationExecution = false;
+          setup = "rm -f /var/lib/kpm-consumer/lipc-set-prop.log";
+          verify = "grep -F -- 'com.lab126.appmgrd start app://xyz.lotpl.kships' /var/lib/kpm-consumer/lipc-set-prop.log";
+        }
+      ];
+    };
   })
 ]

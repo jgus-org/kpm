@@ -17,9 +17,9 @@ jobs:
         with:
           extra-conf: experimental-features = nix-command flakes
       - name: Check
-        run: nix flake check "." --option post-build-hook ""
+        run: nix flake check "."
       - name: Build repository
-        run: nix build ".#repository" --option post-build-hook ""
+        run: nix build ".#repository"
       - name: Check publication size
         run: |
           SIZE_BYTES="$(du -sbL result | cut -f1)"

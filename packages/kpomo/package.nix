@@ -1,4 +1,8 @@
-{ mkKpackage, fetchurl, writeTextFile }:
+{ mkKpackage
+, fetchurl
+, writeTextFile
+,
+}:
 let
   mkWafPackage = import ../../lib/mk-waf-package.nix { inherit mkKpackage writeTextFile; };
   legacySrc = fetchurl {
@@ -17,7 +21,10 @@ in
       0
       0
     ];
-    platforms = [ "kindlehf" "kindlepw2" ];
+    platforms = [
+      "kindlehf"
+      "kindlepw2"
+    ];
     src = fetchurl {
       url = "https://github.com/crizmo/KPomo/releases/download/v1.0.0/kpomo.zip";
       hash = "sha256-RFR0viIkw0HUg3FAGsj3BE0sJu9i5gX9pd3voH6RWG4=";
@@ -49,5 +56,27 @@ in
       "/mnt/us/documents/kpomo"
       "/mnt/us/documents/kpomo.sh"
     ];
+    passthru.consumer.cases = {
+      kindlehf.launches = [
+        {
+          mode = "dispatch";
+          args = [ ];
+          boundaries = [ "LIPC app manager dispatch" ];
+          actualApplicationExecution = false;
+          setup = "rm -f /var/lib/kpm-consumer/lipc-set-prop.log";
+          verify = "grep -F -- 'com.lab126.appmgrd start app://xyz.kurizu.kpomo' /var/lib/kpm-consumer/lipc-set-prop.log";
+        }
+      ];
+      kindlepw2.launches = [
+        {
+          mode = "dispatch";
+          args = [ ];
+          boundaries = [ "LIPC app manager dispatch" ];
+          actualApplicationExecution = false;
+          setup = "rm -f /var/lib/kpm-consumer/lipc-set-prop.log";
+          verify = "grep -F -- 'com.lab126.appmgrd start app://xyz.kurizu.kpomo' /var/lib/kpm-consumer/lipc-set-prop.log";
+        }
+      ];
+    };
   })
 ]

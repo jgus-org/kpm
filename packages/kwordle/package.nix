@@ -1,4 +1,8 @@
-{ mkKpackage, fetchurl, writeTextFile }:
+{ mkKpackage
+, fetchurl
+, writeTextFile
+,
+}:
 let
   mkWafPackage = import ../../lib/mk-waf-package.nix { inherit mkKpackage writeTextFile; };
   legacySrc = fetchurl {
@@ -17,7 +21,10 @@ in
       6
       0
     ];
-    platforms = [ "kindlehf" "kindlepw2" ];
+    platforms = [
+      "kindlehf"
+      "kindlepw2"
+    ];
     src = fetchurl {
       url = "https://github.com/crizmo/KWordle/releases/download/v1.6.0/kwordle.zip";
       hash = "sha256-XnRn7lWYkaNNf0oxrsKEDa53R3JV5ynC5RfoagPewyM=";
@@ -49,5 +56,29 @@ in
       "/mnt/us/documents/kwordle"
       "/mnt/us/documents/kwordle.sh"
     ];
+    passthru.consumer.cases = {
+      kindlehf.launches = [
+        {
+          mode = "dispatch";
+          args = [ ];
+          boundaries = [ "LIPC app manager dispatch" ];
+          actualApplicationExecution = false;
+          setup = "rm -f /var/lib/kpm-consumer/lipc-set-prop.log";
+          verify = "grep -F -- 'com.lab126.appmgrd start app://xyz.kurizu.kwordle' /var/lib/kpm-consumer/lipc-set-prop.log";
+        }
+      ];
+      kindlepw2 = {
+        launches = [
+          {
+            mode = "dispatch";
+            args = [ ];
+            boundaries = [ "LIPC app manager dispatch" ];
+            actualApplicationExecution = false;
+            setup = "rm -f /var/lib/kpm-consumer/lipc-set-prop.log";
+            verify = "grep -F -- 'com.lab126.appmgrd start app://xyz.kurizu.kwordle' /var/lib/kpm-consumer/lipc-set-prop.log";
+          }
+        ];
+      };
+    };
   })
 ]

@@ -514,7 +514,8 @@ in
 }).overrideAttrs (previous: {
   passthru = previous.passthru // {
     waf = {
-      inherit documents installPrelude legacyPaths lifecycleFailureFixture mesquiteDirectory payloadDirectory retainedPayloadPaths scriptletName uninstallPrelude;
+      marker = "${mesquiteDirectory}/.kpm-${id}";
+      inherit appId documents installPrelude legacyPaths lifecycleFailureFixture mesquiteDirectory payloadDirectory retainedPayloadPaths scriptletName uninstallPrelude;
     };
   };
 })

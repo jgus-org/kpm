@@ -1,4 +1,8 @@
-{ mkKpackage, mkNativePackage, fetchurl }:
+{ mkKpackage
+, mkNativePackage
+, fetchurl
+,
+}:
 
 let
   native = mkNativePackage {
@@ -26,7 +30,10 @@ in
       0
       0
     ];
-    platforms = [ "kindlehf" "kindlepw2" ];
+    platforms = [
+      "kindlehf"
+      "kindlepw2"
+    ];
     src = fetchurl {
       url = "https://github.com/crazy-electron/gambatte-k2/releases/download/1.0/gambatte-k2.zip";
       hash = "sha256-fy4G34Ky+C3PUYWN+OzcqUCu10F+pnFEA8bFZ9lcNaY=";
@@ -43,7 +50,47 @@ in
       path = "scriptlets/GambatteK2.sh";
       icon = null;
     };
-    passthru.native = native.passthru;
+    passthru = {
+      native = native.passthru;
+      consumer.cases = {
+        kindlehf.launches = [
+          {
+            mode = "dispatch";
+            args = [ ];
+            boundaries = [ "Gambatte executable boundary" ];
+            actualApplicationExecution = false;
+            setup = ''
+              TARGET=/mnt/us/extensions/gambatte-k2/gambatte-k2-armhf
+              test -x "''${TARGET}"
+              mv "''${TARGET}" "''${TARGET}.kpm-consumer-original"
+              printf '%s\n' '#!/bin/sh' 'printf "%s %s\n" "''${PWD}" "''${*}" > /var/lib/kpm-consumer/gambatte-k2.log' > "''${TARGET}"
+              chmod 755 "''${TARGET}"
+              rm -f /var/lib/kpm-consumer/gambatte-k2.log
+            '';
+            verify = "grep -Fx -- '/mnt/us/extensions/gambatte-k2 ' /var/lib/kpm-consumer/gambatte-k2.log";
+            cleanup = "mv /mnt/us/extensions/gambatte-k2/gambatte-k2-armhf.kpm-consumer-original /mnt/us/extensions/gambatte-k2/gambatte-k2-armhf";
+          }
+        ];
+        kindlepw2.launches = [
+          {
+            mode = "dispatch";
+            args = [ ];
+            boundaries = [ "Gambatte executable boundary" ];
+            actualApplicationExecution = false;
+            setup = ''
+              TARGET=/mnt/us/extensions/gambatte-k2/gambatte-k2-armel
+              test -x "''${TARGET}"
+              mv "''${TARGET}" "''${TARGET}.kpm-consumer-original"
+              printf '%s\n' '#!/bin/sh' 'printf "%s %s\n" "''${PWD}" "''${*}" > /var/lib/kpm-consumer/gambatte-k2.log' > "''${TARGET}"
+              chmod 755 "''${TARGET}"
+              rm -f /var/lib/kpm-consumer/gambatte-k2.log
+            '';
+            verify = "grep -Fx -- '/mnt/us/extensions/gambatte-k2 ' /var/lib/kpm-consumer/gambatte-k2.log";
+            cleanup = "mv /mnt/us/extensions/gambatte-k2/gambatte-k2-armel.kpm-consumer-original /mnt/us/extensions/gambatte-k2/gambatte-k2-armel";
+          }
+        ];
+      };
+    };
     inherit (native) installScript uninstallScript;
     launchScript = ./launch.sh;
   })

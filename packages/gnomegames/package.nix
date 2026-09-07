@@ -1,4 +1,8 @@
-{ mkKpackage, mkNativePackage, fetchurl }:
+{ mkKpackage
+, mkNativePackage
+, fetchurl
+,
+}:
 
 let
   native = mkNativePackage {
@@ -29,7 +33,10 @@ in
       1
       0
     ];
-    platforms = [ "kindlehf" "kindlepw2" ];
+    platforms = [
+      "kindlehf"
+      "kindlepw2"
+    ];
     src = fetchurl {
       url = "https://github.com/crazy-electron/GnomeGames4Kindle/releases/download/v1.1/gnomegames.zip";
       hash = "sha256-OsAZvMomNNDMaMoUFGLqomzzV+4SR8AJn+qTn3SWlEg=";
@@ -43,7 +50,79 @@ in
       printf '%s\n' 'exec /var/local/kmc/bin/kpm launch gnomegames mines' >> scriptlets/GnomeMines.sh
       ${native.buildInventory}
     '';
-    passthru.native = native.passthru;
+    passthru = {
+      native = native.passthru;
+      consumer.cases = {
+        kindlehf.launches = [
+          {
+            mode = "dispatch";
+            args = [ "chess" ];
+            boundaries = [ "Gnome Chess executable boundary" ];
+            actualApplicationExecution = false;
+            setup = ''
+              TARGET=/mnt/us/extensions/gnomegames/bin/armhf/glchess
+              test -x "''${TARGET}"
+              mv "''${TARGET}" "''${TARGET}.kpm-consumer-original"
+              printf '%s\n' '#!/bin/sh' 'printf "%s %s %s\n" "''${PWD}" "''${GSETTINGS_SCHEMA_DIR}" "''${*}" > /var/lib/kpm-consumer/gnomegames.log' > "''${TARGET}"
+              chmod 755 "''${TARGET}"
+              rm -f /var/lib/kpm-consumer/gnomegames.log
+            '';
+            verify = "grep -Fx -- '/mnt/us/extensions/gnomegames /mnt/us/extensions/gnomegames/share/glib-2.0/schemas ' /var/lib/kpm-consumer/gnomegames.log";
+            cleanup = "mv /mnt/us/extensions/gnomegames/bin/armhf/glchess.kpm-consumer-original /mnt/us/extensions/gnomegames/bin/armhf/glchess";
+          }
+          {
+            mode = "dispatch";
+            args = [ "mines" ];
+            boundaries = [ "Gnome Mines executable boundary" ];
+            actualApplicationExecution = false;
+            setup = ''
+              TARGET=/mnt/us/extensions/gnomegames/bin/armhf/gnomine
+              test -x "''${TARGET}"
+              mv "''${TARGET}" "''${TARGET}.kpm-consumer-original"
+              printf '%s\n' '#!/bin/sh' 'printf "%s %s %s\n" "''${PWD}" "''${GSETTINGS_SCHEMA_DIR}" "''${*}" > /var/lib/kpm-consumer/gnomegames.log' > "''${TARGET}"
+              chmod 755 "''${TARGET}"
+              rm -f /var/lib/kpm-consumer/gnomegames.log
+            '';
+            verify = "grep -Fx -- '/mnt/us/extensions/gnomegames /mnt/us/extensions/gnomegames/share/glib-2.0/schemas ' /var/lib/kpm-consumer/gnomegames.log";
+            cleanup = "mv /mnt/us/extensions/gnomegames/bin/armhf/gnomine.kpm-consumer-original /mnt/us/extensions/gnomegames/bin/armhf/gnomine";
+          }
+        ];
+        kindlepw2.launches = [
+          {
+            mode = "dispatch";
+            args = [ "chess" ];
+            boundaries = [ "Gnome Chess executable boundary" ];
+            actualApplicationExecution = false;
+            setup = ''
+              TARGET=/mnt/us/extensions/gnomegames/bin/armel/glchess
+              test -x "''${TARGET}"
+              mv "''${TARGET}" "''${TARGET}.kpm-consumer-original"
+              printf '%s\n' '#!/bin/sh' 'printf "%s %s %s\n" "''${PWD}" "''${GSETTINGS_SCHEMA_DIR}" "''${*}" > /var/lib/kpm-consumer/gnomegames.log' > "''${TARGET}"
+              chmod 755 "''${TARGET}"
+              rm -f /var/lib/kpm-consumer/gnomegames.log
+            '';
+            verify = "grep -Fx -- '/mnt/us/extensions/gnomegames /mnt/us/extensions/gnomegames/share/glib-2.0/schemas ' /var/lib/kpm-consumer/gnomegames.log";
+            cleanup = "mv /mnt/us/extensions/gnomegames/bin/armel/glchess.kpm-consumer-original /mnt/us/extensions/gnomegames/bin/armel/glchess";
+          }
+          {
+            mode = "dispatch";
+            args = [ "mines" ];
+            boundaries = [ "Gnome Mines executable boundary" ];
+            actualApplicationExecution = false;
+            setup = ''
+              TARGET=/mnt/us/extensions/gnomegames/bin/armel/gnomine
+              test -x "''${TARGET}"
+              mv "''${TARGET}" "''${TARGET}.kpm-consumer-original"
+              printf '%s\n' '#!/bin/sh' 'printf "%s %s %s\n" "''${PWD}" "''${GSETTINGS_SCHEMA_DIR}" "''${*}" > /var/lib/kpm-consumer/gnomegames.log' > "''${TARGET}"
+              chmod 755 "''${TARGET}"
+              rm -f /var/lib/kpm-consumer/gnomegames.log
+            '';
+            verify = "grep -Fx -- '/mnt/us/extensions/gnomegames /mnt/us/extensions/gnomegames/share/glib-2.0/schemas ' /var/lib/kpm-consumer/gnomegames.log";
+            cleanup = "mv /mnt/us/extensions/gnomegames/bin/armel/gnomine.kpm-consumer-original /mnt/us/extensions/gnomegames/bin/armel/gnomine";
+          }
+        ];
+      };
+    };
     inherit (native) installScript uninstallScript;
     launchScript = ./launch.sh;
   })

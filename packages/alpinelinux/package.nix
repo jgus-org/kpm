@@ -41,6 +41,12 @@ let
     installPreflight = mountGuard;
     uninstallPreflight = mountGuard;
   };
+  consumerLosetup = pkgs.writeShellScript "alpinelinux-consumer-losetup" ''
+    printf '%s\n' "''${*}" >> /var/lib/kpm-consumer/alpinelinux-losetup.log
+    if [ "''${1:-}" = -f ]; then
+      printf '%s\n' /dev/loop-kpm
+    fi
+  '';
 in
 [
   (mkKpackage {
@@ -97,6 +103,48 @@ in
     };
     passthru = {
       native = native.passthru;
+      consumer.cases.kindlehf = {
+        launches = [
+          {
+            mode = "dispatch";
+            args = [ "gui" ];
+            boundaries = [
+              "loop-device service shim"
+              "mount service shim"
+              "chroot service shim"
+            ];
+            actualApplicationExecution = false;
+            pathPrefix = [ "/var/lib/kpm-consumer/alpinelinux/bin" ];
+            setup = ''
+              mkdir -p \
+                /tmp/alpinelinux/dev/pts \
+                /tmp/alpinelinux/etc \
+                /tmp/alpinelinux/proc \
+                /tmp/alpinelinux/run/dbus \
+                /tmp/alpinelinux/sys \
+                /var/lib/kpm-consumer/alpinelinux/bin
+              ln -sf ${consumerLosetup} /var/lib/kpm-consumer/alpinelinux/bin/losetup
+              rm -f /var/lib/kpm-consumer/alpinelinux-losetup.log /var/lib/kpm-consumer/boundary.log
+              : > /mnt/us/alpine.ext3
+            '';
+            verify = [
+              "grep -F -- '/dev/loop-kpm /mnt/us/alpine.ext3' /var/lib/kpm-consumer/alpinelinux-losetup.log"
+              "grep -F -- '-t ext3 -o noatime /dev/loop-kpm /tmp/alpinelinux' /var/lib/kpm-consumer/boundary.log"
+              "grep -F -- '/tmp/alpinelinux /bin/sh /startgui.sh' /var/lib/kpm-consumer/boundary.log"
+              "grep -F -- '-d /dev/loop-kpm' /var/lib/kpm-consumer/alpinelinux-losetup.log"
+            ];
+          }
+          {
+            mode = "dispatch";
+            args = [ "shell" ];
+            boundaries = [ "kTerm command dispatch shim" ];
+            actualApplicationExecution = false;
+            setup = "rm -f /var/lib/kpm-consumer/kterm.log";
+            verify = "grep -F -- \"-e ALPINE_ARCHIVE='/mnt/us/kmc/kpm/packages/alpinelinux/alpine.zip' sh /mnt/us/extensions/alpinelinux/run.sh shell -k 1 -o U -s 7\" /var/lib/kpm-consumer/kterm.log";
+          }
+        ];
+        uninstallAssertions = "test -f /mnt/us/alpine.ext3";
+      };
       tests.lifecycle = pkgs.runCommand "alpinelinux-lifecycle-check" { } ''
         export TMPDIR="$(${pkgs.lib.getExe' pkgs.coreutils "mktemp"} -d)"
         trap '${pkgs.lib.getExe' pkgs.coreutils "rm"} -rf "''${TMPDIR}"' EXIT

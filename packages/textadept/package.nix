@@ -69,6 +69,48 @@ in
       icon = "payload/textadept/textadept-cover.png";
       installedIcon = "/mnt/us/textadept/textadept-cover.png";
     };
-    passthru.native = nativePackage.passthru;
+    passthru = {
+      native = nativePackage.passthru;
+      consumer.cases = {
+        kindlehf.launches = [
+          {
+            mode = "dispatch";
+            args = [ ];
+            boundaries = [ "kTerm terminal dispatch" ];
+            actualApplicationExecution = false;
+            setup = "rm -f /var/lib/kpm-consumer/kterm.log";
+            verify = "grep -Fx -- '-e env HOME=/mnt/us sh /mnt/us/textadept/run.sh textadept-curses -k 0 -o R' /var/lib/kpm-consumer/kterm.log";
+          }
+        ];
+        kindlepw2.launches = [
+          {
+            mode = "dispatch";
+            args = [ ];
+            boundaries = [ "kTerm terminal dispatch" ];
+            actualApplicationExecution = false;
+            setup = "rm -f /var/lib/kpm-consumer/kterm.log";
+            verify = "grep -Fx -- '-e env HOME=/mnt/us sh /mnt/us/textadept/run.sh textadept-curses -k 0 -o R' /var/lib/kpm-consumer/kterm.log";
+          }
+        ];
+      };
+      abi.runtimeContexts = [
+        {
+          path = "payload/textadept/textadept-curses";
+          libraryPaths = [ "payload/textadept/libs_hf" ];
+        }
+        {
+          path = "payload/textadept/textadept-gtk";
+          libraryPaths = [ "payload/textadept/libs_hf" ];
+        }
+        {
+          path = "payload/textadept/textadept-curses-pw2";
+          libraryPaths = [ "payload/textadept/libs_pw2" ];
+        }
+        {
+          path = "payload/textadept/textadept-gtk-pw2";
+          libraryPaths = [ "payload/textadept/libs_pw2" ];
+        }
+      ];
+    };
   })
 ]

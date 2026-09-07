@@ -87,7 +87,24 @@ let
         path = "scriptlets/JarLauncher.sh";
         icon = null;
       };
-      passthru.native = native.passthru;
+      passthru = {
+        native = native.passthru;
+        consumer.cases.${platform}.launches = [
+          {
+            mode = "dispatch";
+            args = [ ];
+            boundaries = [ "kTerm terminal dispatch" ];
+            actualApplicationExecution = false;
+            setup = "rm -f /var/lib/kpm-consumer/kterm.log";
+            verify = "grep -Fx -- '-e sh /mnt/us/extensions/JarLauncher/run/start.sh -k 1 -o O -s 7' /var/lib/kpm-consumer/kterm.log";
+          }
+        ];
+        abi.runtimeContexts = [
+          {
+            pathPrefix = "payload/JarLauncher/Java/";
+          }
+        ];
+      };
       inherit (native) installScript uninstallScript;
       launchScript = ./launch.sh;
     };

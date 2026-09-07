@@ -1,4 +1,8 @@
-{ mkKpackage, mkNativePackage, fetchurl }:
+{ mkKpackage
+, mkNativePackage
+, fetchurl
+,
+}:
 
 let
   revision = "13370ad3a36cd526270a9bc5a942bdf6ea1869d2";
@@ -53,7 +57,39 @@ in
       path = "scriptlets/KindleCraft.sh";
       icon = null;
     };
-    passthru.native = native.passthru;
+    passthru = {
+      native = native.passthru;
+      consumer.cases.kindlehf.launches = [
+        {
+          mode = "dispatch";
+          args = [ ];
+          boundaries = [
+            "iptables"
+            "KindleCraft executable boundary"
+          ];
+          actualApplicationExecution = false;
+          pathPrefix = [ "/var/lib/kpm-consumer/kindlecraft/bin" ];
+          setup = ''
+            TARGET=/mnt/us/extensions/kindlecraft/kindlecraft
+            BIN=/var/lib/kpm-consumer/kindlecraft/bin
+            test -x "''${TARGET}"
+            mkdir -p "''${BIN}"
+            printf '%s\n' '#!/bin/sh' 'printf "%s %s\\n" "''${0##*/}" "''${*}" >> /var/lib/kpm-consumer/boundary.log' 'test "''${1}" != -C' > "''${BIN}/iptables"
+            chmod 755 "''${BIN}/iptables"
+            mv "''${TARGET}" "''${TARGET}.kpm-consumer-original"
+            printf '%s\n' '#!/bin/sh' 'printf "%s %s\n" "''${PWD}" "''${*}" > /var/lib/kpm-consumer/kindlecraft.log' > "''${TARGET}"
+            chmod 755 "''${TARGET}"
+            rm -f /var/lib/kpm-consumer/kindlecraft.log /var/lib/kpm-consumer/boundary.log
+          '';
+          verify = ''
+            grep -Fx -- '/mnt/us/documents ' /var/lib/kpm-consumer/kindlecraft.log
+            grep -Fx -- 'iptables -C INPUT -p tcp --dport 25565 -j ACCEPT' /var/lib/kpm-consumer/boundary.log
+            grep -Fx -- 'iptables -I INPUT -p tcp --dport 25565 -j ACCEPT' /var/lib/kpm-consumer/boundary.log
+          '';
+          cleanup = "mv /mnt/us/extensions/kindlecraft/kindlecraft.kpm-consumer-original /mnt/us/extensions/kindlecraft/kindlecraft";
+        }
+      ];
+    };
     inherit (native) installScript uninstallScript;
     launchScript = ./launch.sh;
   })

@@ -66,6 +66,46 @@ in
       icon = "payload/KinAMP/kinamp_icon.png";
       installedIcon = "/mnt/us/KinAMP/kinamp_icon.png";
     };
-    passthru.native = nativePackage.passthru;
+    passthru = {
+      native = nativePackage.passthru;
+      consumer.cases = {
+        kindlehf.launches = [
+          {
+            mode = "dispatch";
+            args = [ ];
+            boundaries = [ "KinAMP executable boundary" ];
+            actualApplicationExecution = false;
+            setup = ''
+              TARGET=/mnt/us/KinAMP/startkinamp.sh
+              test -x "''${TARGET}"
+              mv "''${TARGET}" "''${TARGET}.kpm-consumer-original"
+              printf '%s\n' '#!/bin/sh' 'printf "%s %s\n" "''${PWD}" "''${*}" > /var/lib/kpm-consumer/kinamp.log' > "''${TARGET}"
+              chmod 755 "''${TARGET}"
+              rm -f /var/lib/kpm-consumer/kinamp.log
+            '';
+            verify = "grep -Fx -- '/mnt/us/kmc/kpm/packages/kinamp ' /var/lib/kpm-consumer/kinamp.log";
+            cleanup = "mv /mnt/us/KinAMP/startkinamp.sh.kpm-consumer-original /mnt/us/KinAMP/startkinamp.sh";
+          }
+        ];
+        kindlepw2.launches = [
+          {
+            mode = "dispatch";
+            args = [ ];
+            boundaries = [ "KinAMP executable boundary" ];
+            actualApplicationExecution = false;
+            setup = ''
+              TARGET=/mnt/us/KinAMP/startkinamp.sh
+              test -x "''${TARGET}"
+              mv "''${TARGET}" "''${TARGET}.kpm-consumer-original"
+              printf '%s\n' '#!/bin/sh' 'printf "%s %s\n" "''${PWD}" "''${*}" > /var/lib/kpm-consumer/kinamp.log' > "''${TARGET}"
+              chmod 755 "''${TARGET}"
+              rm -f /var/lib/kpm-consumer/kinamp.log
+            '';
+            verify = "grep -Fx -- '/mnt/us/kmc/kpm/packages/kinamp ' /var/lib/kpm-consumer/kinamp.log";
+            cleanup = "mv /mnt/us/KinAMP/startkinamp.sh.kpm-consumer-original /mnt/us/KinAMP/startkinamp.sh";
+          }
+        ];
+      };
+    };
   })
 ]
