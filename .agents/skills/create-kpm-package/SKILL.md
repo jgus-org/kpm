@@ -24,7 +24,11 @@ KPM runs hooks with `sh` from the extracted package directory. Resolve packaged 
 
 The [jgus/kpm reference implementation](https://github.com/jgus/kpm) uses `lib/mk-kpackage.nix`, `lib/mk-repository.nix`, and `lib/check-repository.nix`; those interfaces are repository conventions, not KPM protocol requirements.
 
+<<<<<<< Updated upstream
 ## Choose integration, ownership, and upgrade behavior
+=======
+The [jgus-org/kpm reference implementation](https://github.com/jgus-org/kpm) uses `lib/mk-kpackage.nix`, `lib/mk-repository.nix`, and `lib/check-repository.nix` for these rules. Their Nix interface and directory names are repository-specific, not a KPM protocol requirement.
+>>>>>>> Stashed changes
 
 Use Mesquite/WAF registration and LIPC only when the application requires them. Factor only repeated, proven lifecycle mechanics into shared helpers; keep payload paths, registration identifiers, commands, firmware gates, and retained state package-specific. Lifecycle hooks must not write or remount rootfs. An explicitly launched maintenance tool may perform its documented action when installation is side-effect free and the package documents the boundary. A package does not own a separate component merely because it installs or invokes it; removal must leave independently installed components and registrations intact. State omitted boot, udev, or rootfs integration in rootless package descriptions.
 
@@ -72,4 +76,16 @@ Use quoted flake references and disable post-build hooks for local Nix checks:
 nix flake check --option post-build-hook "" 'path:.'
 ```
 
+<<<<<<< Updated upstream
 Publish a static repository manifest and every artifact at its recorded relative URL. Validate it as the target consumer would fetch it. For the tested 0.2.x contract, use a v2 manifest and give `kpm add-repo` the full manifest URL, such as `https://owner.github.io/repo/manifest.v2.json`; the `jgus/kpm` layout is `manifest.v2.json` plus `packages/<id>/artifacts/<artifact>.kpkg`. Put concise setup and valid input/data requirements in `packages/<id>/README.md`, linked from the package list; a program distribution does not prove that compatible content ships with it. Check dependencies against the current schema, including kTerm's `min` field.
+=======
+Check the emitted archive rather than only evaluating its package expression: bare member names, manifest JSON, no host-store paths in runtime files, shell syntax, Scriptlet first-six-line metadata, icon format and bytes, and the Scriptlet-to-`kpm launch` path. Test every ABI artifact that can differ in payload, icon availability, runtime command, or firmware selection.
+
+Publish the generated static repository shape together: for the tested KPM 0.2.x contract, a v2 repository manifest and each artifact at the relative URL recorded in that manifest. Validate it as a released KPM consumer would fetch it, not only from a local derivation. Give `kpm add-repo` the full manifest URL, such as `https://<owner>.github.io/<repo>/manifest.v2.json`, rather than the repository base URL; verify that input contract against the target release. The jgus-org/kpm reference layout is `manifest.v2.json` plus `packages/<id>/artifacts/<artifact>.kpkg`.
+
+Put substantial user setup in `packages/<id>/README.md` and link to it from the repository package list. Keep it concise, explain required valid inputs or data locations, and link to authoritative upstream documentation. For example, an interpreter package needs real compatible story files; a program distribution is not evidence that it ships games.
+
+When a native UI appears to exit, distinguish stderr warnings from the true child-process status. Inspect the wrapper: a cleanup command after the binary can mask its exit code. Reproduce with a known-valid minimal input that exercises the interpreter or renderer, then capture the child status before cleanup.
+
+For native payloads, inspect `LD_LIBRARY_PATH` shadowing and the ELF version requirements of both the application and its system dependencies. Verify that a target firmware's system library satisfies the application before removing a bundled copy; do not treat library removal as a generic fix. Gargoyle is a scoped example: a bundled `libm` built for an older GLIBC conflicted with a newer firmware dependency chain, and the port maintainer recommended omitting it in [the upstream port discussion](https://www.mobileread.com/forums/showthread.php?p=4508221). That compatibility finding is separate from GTK warning output or a Library-indexing symptom.
+>>>>>>> Stashed changes
