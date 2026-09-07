@@ -19,6 +19,8 @@
     buildPayload = ''
       mkdir -p payload
       unzip -q "''${SOURCE}" -d payload
+      sed -i '/^cd \/mnt\/us\/LARK$/,$d' payload/documents/lark.sh
+      printf '%s\n' 'exec /var/local/kmc/bin/kpm launch larkplayer' >> payload/documents/lark.sh
     '';
     scriptlet = {
       name = "lark.sh";
@@ -27,5 +29,6 @@
     };
     installScript = ./install.sh;
     uninstallScript = ./uninstall.sh;
+    launchScript = ./launch.sh;
   })
 ]

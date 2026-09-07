@@ -28,7 +28,7 @@ in
         printf '%s' '# Icon: data:image/png;base64,'
         base64 -w0 payload/gargoyle/gargoyle.png
         printf '\n'
-        printf '%s\n' '# DontUseFBInk' 'exec /mnt/us/extensions/gargoyle/gargoyle.sh'
+        printf '%s\n' '# DontUseFBInk' 'exec /var/local/kmc/bin/kpm launch gargoyle'
       } > scriptlets/Gargoyle.sh
     '';
     scriptlet = {
@@ -37,6 +37,7 @@ in
     };
     installScript = ./install.sh;
     uninstallScript = ./uninstall-hf.sh;
+    launchScript = ./launch.sh;
   })
   (mkKpackage {
     id = "gargoyle";
@@ -61,7 +62,7 @@ in
         printf '%s' '# Icon: data:image/png;base64,'
         unzip -p "${hfSource}" gargoyle/gargoyle.png | base64 -w0
         printf '\n'
-        printf '%s\n' '# DontUseFBInk' 'exec /mnt/us/extensions/gargoyle/gargoyle.sh'
+        printf '%s\n' '# DontUseFBInk' 'exec /var/local/kmc/bin/kpm launch gargoyle'
       } > scriptlets/Gargoyle.sh
       unzip -p "${hfSource}" gargoyle/gargoyle.png > scriptlets/gargoyle.png
     '';
@@ -71,5 +72,6 @@ in
     };
     installScript = ./install.sh;
     uninstallScript = ./uninstall-sf.sh;
+    launchScript = ./launch.sh;
   })
 ]

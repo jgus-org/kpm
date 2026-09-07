@@ -3,6 +3,14 @@
 let
   expectedArtifactCount = builtins.length artifacts;
   expectedPackageIds = lib.sort builtins.lessThan (lib.unique (map (artifact: artifact.kpm.id) artifacts));
+  kpmLaunchStub = artifact: pkgs.writeShellScript "kpm-launch-${artifact.kpm.id}" ''
+    set -eu
+    test "''${#}" -eq 2
+    test "''${1}" = launch
+    test "''${2}" = ${lib.escapeShellArg artifact.kpm.id}
+    test -f "''${KPM_LAUNCH_ENTRY}"
+    touch "''${KPM_LAUNCH_RECORDED}"
+  '';
   checkArtifact = artifact: ''
     ARCHIVE=${lib.escapeShellArg "${artifact}/${artifact.kpm.filename}"}
     test "$(${lib.getExe pkgs.gnutar} -xOf "''${ARCHIVE}" manifest.json)" = ${lib.escapeShellArg artifact.kpm.manifest}
@@ -30,8 +38,18 @@ let
     done
     ${lib.optionalString (artifact ? scriptlet) ''
       SCRIPTLET=${lib.escapeShellArg "extracted/${artifact.scriptlet.path or "scriptlets/${artifact.scriptlet.name}"}"}
+      LAUNCH_ENTRY=extracted/launch.sh
       test -f "''${SCRIPTLET}"
+      test -f "''${LAUNCH_ENTRY}"
       sh -n "''${SCRIPTLET}"
+      KPM_STUB=${lib.escapeShellArg (kpmLaunchStub artifact)}
+      export KPM_LAUNCH_ENTRY="''${LAUNCH_ENTRY}"
+      KPM_LAUNCH_RECORDED="''${WORK_DIRECTORY}/kpm-launch-${artifact.kpm.id}"
+      export KPM_LAUNCH_RECORDED
+      rm -f "''${KPM_LAUNCH_RECORDED}"
+      sed "s#/var/local/kmc/bin/kpm#''${KPM_STUB}#g" "''${SCRIPTLET}" > consumer-scriptlet
+      sh consumer-scriptlet
+      test -f "''${KPM_LAUNCH_RECORDED}"
     ''}
     ${lib.optionalString (artifact ? scriptlet && artifact.scriptlet ? icon) ''
       SCRIPTLET=${lib.escapeShellArg "extracted/${artifact.scriptlet.path or "scriptlets/${artifact.scriptlet.name}"}"}
