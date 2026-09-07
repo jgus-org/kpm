@@ -23,6 +23,7 @@ in
     buildPayload = ''
       mkdir -p payload
       unzip -q "''${SOURCE}" -d payload
+      rm payload/gargoyle/dist/libm.so.6
       mkdir scriptlets
       {
         printf '%s' '# Icon: data:image/png;base64,'
