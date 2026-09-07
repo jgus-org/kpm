@@ -13,7 +13,7 @@ You need a compatible jailbroken Kindle with KPM. Start at [KindleModding](https
 Connect the Kindle to Wi-Fi, then open its search bar and enter these commands one at a time:
 
 ```
-;kpm add-repo https://jgus.github.io/kpm/manifest.v2.json
+;kpm add-repo https://jgus-org.github.io/kpm/manifest.v2.json
 ;kpm update
 ;kpm install <package>
 ;kpm launch <package>
