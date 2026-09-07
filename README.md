@@ -2,7 +2,7 @@
 
 This repository ports packages from the original [KindleForge package repository](https://github.com/KindleTweaks/Repository) for the current Kindle Package Manager (KPM) catalog.
 
-Not all packages have been tested. If you encounter errors you beleive are related to packaging, please file an issue, or better yet propose a PR. Thanks!
+Not all packages have been tested. If you encounter errors you believe are related to packaging, please file an issue, or better yet propose a PR. Thanks!
 
 ## Before you start
 
