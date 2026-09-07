@@ -51,7 +51,17 @@ let
       sh consumer-scriptlet
       test -f "''${KPM_LAUNCH_RECORDED}"
     ''}
-    ${lib.optionalString (artifact ? scriptlet && artifact.scriptlet ? icon) ''
+    ${lib.optionalString (artifact ? scriptlet && artifact.scriptlet ? installedIcon) ''
+      SCRIPTLET=${lib.escapeShellArg "extracted/${artifact.scriptlet.path or "scriptlets/${artifact.scriptlet.name}"}"}
+      ICON_LINE="$(sed -n '1,6{s/^# Icon: //p;}' "''${SCRIPTLET}")"
+      test "$(printf '%s\n' "''${ICON_LINE}" | wc -l)" -eq 1
+      test "''${ICON_LINE}" = ${lib.escapeShellArg artifact.scriptlet.installedIcon}
+      case "$( ${lib.getExe' pkgs.imagemagick "identify"} -format '%m' ${lib.escapeShellArg "extracted/${artifact.scriptlet.icon}"})" in
+        PNG|JPEG) ;;
+        *) exit 1 ;;
+      esac
+    ''}
+    ${lib.optionalString (artifact ? scriptlet && artifact.scriptlet ? icon && !(artifact.scriptlet ? installedIcon)) ''
       SCRIPTLET=${lib.escapeShellArg "extracted/${artifact.scriptlet.path or "scriptlets/${artifact.scriptlet.name}"}"}
       ICON_LINE="$(sed -n '1,6{s/^# Icon: //p;}' "''${SCRIPTLET}")"
       test "$(printf '%s\n' "''${ICON_LINE}" | wc -l)" -eq 1

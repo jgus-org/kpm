@@ -26,15 +26,16 @@ in
       rm payload/gargoyle/dist/libm.so.6
       mkdir scriptlets
       {
-        printf '%s' '# Icon: data:image/png;base64,'
-        base64 -w0 payload/gargoyle/gargoyle.png
-        printf '\n'
-        printf '%s\n' '# DontUseFBInk' 'exec /var/local/kmc/bin/kpm launch gargoyle'
+        printf '%s\n' \
+          '# Icon: /mnt/us/extensions/gargoyle/gargoyle.png' \
+          '# DontUseFBInk' \
+          'exec /var/local/kmc/bin/kpm launch gargoyle'
       } > scriptlets/Gargoyle.sh
     '';
     scriptlet = {
       name = "Gargoyle.sh";
       icon = "payload/gargoyle/gargoyle.png";
+      installedIcon = "/mnt/us/extensions/gargoyle/gargoyle.png";
     };
     installScript = ./install.sh;
     uninstallScript = ./uninstall-hf.sh;
@@ -58,18 +59,19 @@ in
     buildPayload = ''
       mkdir -p payload
       tar -xzf "''${SOURCE}" -C payload
+      unzip -p "${hfSource}" gargoyle/gargoyle.png > payload/gargoyle/gargoyle.png
       mkdir scriptlets
       {
-        printf '%s' '# Icon: data:image/png;base64,'
-        unzip -p "${hfSource}" gargoyle/gargoyle.png | base64 -w0
-        printf '\n'
-        printf '%s\n' '# DontUseFBInk' 'exec /var/local/kmc/bin/kpm launch gargoyle'
+        printf '%s\n' \
+          '# Icon: /mnt/us/extensions/gargoyle/gargoyle.png' \
+          '# DontUseFBInk' \
+          'exec /var/local/kmc/bin/kpm launch gargoyle'
       } > scriptlets/Gargoyle.sh
-      unzip -p "${hfSource}" gargoyle/gargoyle.png > scriptlets/gargoyle.png
     '';
     scriptlet = {
       name = "Gargoyle.sh";
-      icon = "scriptlets/gargoyle.png";
+      icon = "payload/gargoyle/gargoyle.png";
+      installedIcon = "/mnt/us/extensions/gargoyle/gargoyle.png";
     };
     installScript = ./install.sh;
     uninstallScript = ./uninstall-sf.sh;
