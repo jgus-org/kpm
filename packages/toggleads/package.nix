@@ -1,4 +1,4 @@
-{ mkKpackage, fetchurl }:
+{ mkKpackage, fetchurl, pkgs }:
 [
   (mkKpackage {
     id = "toggleads";
@@ -32,5 +32,9 @@
     installScript = ./install.sh;
     uninstallScript = ./uninstall.sh;
     launchScript = ./launch.sh;
+    passthru.tests.callback = pkgs.runCommand "toggleads-callback-check" { } ''
+      sh ${./check-callback.sh} ${./install.sh} ${./uninstall.sh}
+      touch "''${out}"
+    '';
   })
 ]

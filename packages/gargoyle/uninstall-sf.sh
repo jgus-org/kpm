@@ -2,6 +2,11 @@
 
 set -eu
 
+if [ ! -f .kpm-install-success ]; then
+  rm -f .kpm-install-success.pending
+  exit 0
+fi
+
 if [ "${1:-}" = upgrade ]; then
   if [ -f /mnt/us/documents/Gargoyle.sh ] && cmp -s scriptlets/Gargoyle.sh /mnt/us/documents/Gargoyle.sh; then
     rm -f /mnt/us/documents/Gargoyle.sh
@@ -9,6 +14,7 @@ if [ "${1:-}" = upgrade ]; then
   if [ -f /mnt/us/extensions/gargoyle/.kpm-owner ] && [ "$(cat /mnt/us/extensions/gargoyle/.kpm-owner)" = installed ]; then
     printf '%s' retained >/mnt/us/extensions/gargoyle/.kpm-owner
   fi
+  rm -f .kpm-install-success
   exit 0
 fi
 
@@ -49,3 +55,4 @@ fi
 if [ -d /mnt/us/extensions/gargoyle ]; then
   printf '%s' retained >/mnt/us/extensions/gargoyle/.kpm-owner
 fi
+rm -f .kpm-install-success

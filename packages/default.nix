@@ -1,11 +1,17 @@
 { lib, pkgs }:
 let
   mkKpackage = import ../lib/mk-kpackage.nix { inherit lib pkgs; };
-  packageArguments = {
+  mkNativePackage = import ../lib/mk-native-package.nix { inherit lib pkgs; };
+  mkWafPackage = import ../lib/mk-waf-package.nix {
     inherit mkKpackage;
+    inherit (pkgs) writeTextFile;
+  };
+  packageArguments = {
+    inherit mkKpackage mkNativePackage mkWafPackage pkgs;
     inherit (pkgs) fetchurl writeTextFile;
   };
   packageIds = [
+    "alpinelinux"
     "toggleads"
     "updateblockstatus"
     "kwordle"
@@ -14,6 +20,22 @@ let
     "kreate"
     "larkplayer"
     "gargoyle"
+    "hotfixupdater"
+    "kindlecraft"
+    "kindle-button-mapper"
+    "kindlefetch"
+    "kindle-hid-passthrough"
+    "kinamp"
+    "jarlauncher"
+    "ranki"
+    "gambatte-k2"
+    "gnomegames"
+    "kanki"
+    "knotes"
+    "kual"
+    "sox"
+    "textadept"
+    "wordgrinder"
   ];
   loadPackage = packageId:
     let

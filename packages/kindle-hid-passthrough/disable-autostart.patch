@@ -1,0 +1,70 @@
+--- a/payload/illusion/BTManager/index.html
++++ b/payload/illusion/BTManager/index.html
+@@ -64,8 +63,0 @@
+-    <!-- Start on boot toggle -->
+-    <div class="toggle-row toggle-row-secondary">
+-        <span class="toggle-label">Start on boot</span>
+-        <button id="btnAutostart" class="toggle toggle-secondary" aria-label="Toggle start on boot">
+-            <span class="toggle-knob"></span>
+-        </button>
+-    </div>
+-
+--- a/payload/illusion/BTManager/script.js
++++ b/payload/illusion/BTManager/script.js
+@@ -30 +29,0 @@
+-    var autostartOn = false;
+@@ -218,26 +216,0 @@
+-    // ---- Autostart ----
+-
+-    function setAutostartUI(on) {
+-        autostartOn = on;
+-        getEl("btnAutostart").className = on
+-            ? "toggle toggle-secondary on" : "toggle toggle-secondary";
+-    }
+-
+-    function toggleAutostart() {
+-        var want = autostartOn ? "0" : "1";
+-        showMessage(autostartOn ? "Disabling autostart..." : "Enabling autostart...", false);
+-        request("/autostart?enable=" + want, function(data, err) {
+-            if (err) {
+-                showMessage("Error: " + err, true);
+-                return;
+-            }
+-            setAutostartUI(!!(data && data.enabled));
+-            if (data && data.ok) {
+-                showMessage(data.enabled ? "Starts on boot" : "Won't start on boot", false);
+-            } else {
+-                showMessage(data && data.error ? data.error : "Failed", true);
+-            }
+-            lastStatusJson = "";
+-        });
+-    }
+-
+@@ -274,2 +246,0 @@
+-            setAutostartUI(!!data.autostart);
+-
+@@ -894 +864,0 @@
+-        bindBtn("btnAutostart", toggleAutostart);
+--- a/payload/scripts/install.sh
++++ b/payload/scripts/install.sh
+@@ -256,9 +256,2 @@
+-  echo " -> Installing upstart service"
+-  rm -f "$INSTALL_DIR/boot_attempts"
+-  /usr/sbin/mntroot rw
+-  cp "$SRC_DIR/assets/hid-passthrough.upstart" /etc/upstart/hid-passthrough.conf
+-  /usr/sbin/mntroot ro
+-  # upstart only picks up a newly dropped .conf after a config reload, without
+-  # this the job stays unknown and the start below fails until a reboot.
+-  /sbin/initctl reload-configuration 2>/dev/null || true
+-  echo " -> Ready."
++  echo "Autostart is unavailable in this package" >&2
++  return 1
+@@ -269,6 +262,2 @@
+-  echo " -> Removing upstart service"
+-  /usr/sbin/mntroot rw
+-  rm -f /etc/upstart/hid-passthrough.conf
+-  /usr/sbin/mntroot ro
+-  /sbin/initctl reload-configuration 2>/dev/null || true
+-  echo " -> Ready."
++  echo "Autostart is unavailable in this package" >&2
++  return 1

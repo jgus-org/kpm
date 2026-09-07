@@ -2,6 +2,8 @@
 
 set -eu
 
+: >.kpm-install-success.pending
+
 APPLICATION_DIRECTORY=/mnt/us/extensions/gargoyle
 SCRIPTLET=/mnt/us/documents/Gargoyle.sh
 OWNER_FILE=${APPLICATION_DIRECTORY}/.kpm-owner
@@ -85,3 +87,4 @@ rm -rf "${BACKUP_DIRECTORY}"
 BACKED_UP=0
 INSTALLED=0
 trap - EXIT HUP INT TERM
+mv .kpm-install-success.pending .kpm-install-success

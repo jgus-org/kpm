@@ -1,0 +1,63 @@
+--- a/payload/HotfixUpdater/updater.sh
++++ b/payload/HotfixUpdater/updater.sh
+@@ -86,20 +86,35 @@
+     fi
+
+     alert "HotfixUpdater - Info" "Running payload scripts..."
+-    cd "$TMP_DIR" || return 1
+-
+-    for f in *.sh; do
+-        [ -f "$f" ] || continue
+-
+-        alert "HotfixUpdater - Info" "Running $f"
+-        if ! sh "$f" >/dev/null 2>&1; then
+-            alert "HotfixUpdater - Attention" "Script failed: $f"
+-            mount -o remount,ro / >/dev/null 2>&1
+-            return 1
++    if ! (
++        ROOT_WRITABLE=1
++        restore_root() {
++            if [ "$ROOT_WRITABLE" -eq 1 ]; then
++                mount -o remount,ro / >/dev/null 2>&1
++            fi
++        }
++        trap restore_root EXIT HUP INT TERM
++        cd "$TMP_DIR" || exit 1
++
++        for f in *.sh; do
++            [ -f "$f" ] || continue
++
++            alert "HotfixUpdater - Info" "Running $f"
++            if ! sh "$f" >/dev/null 2>&1; then
++                alert "HotfixUpdater - Attention" "Script failed: $f"
++                exit 1
++            fi
++        done
++        alert "HotfixUpdater - Info" "Remounting root RO..."
++        if ! mount -o remount,ro / >/dev/null 2>&1; then
++            exit 1
+         fi
+-    done
+-    alert "HotfixUpdater - Info" "Remounting root RO..."
+-    mount -o remount,ro / >/dev/null 2>&1
++        ROOT_WRITABLE=0
++        trap - EXIT HUP INT TERM
++    ); then
++        alert "HotfixUpdater - Attention" "Update payload failed or root filesystem is not read-only!"
++        return 1
++    fi
+
+     cleanup_tmp
+     alert "HotfixUpdater - Success" "Update applied successfully."
+@@ -162,7 +177,10 @@
+     fi
+
+     alert "HotfixUpdater - Info" "Running Hotfix..."
+-    /bin/sh /var/local/kmc/hotfix/run_hotfix.sh >/dev/null 2>&1
++    if ! /bin/sh /var/local/kmc/hotfix/run_hotfix.sh >/dev/null 2>&1; then
++        alert "HotfixUpdater - Attention" "Hotfix initialization failed!"
++        exit 1
++    fi
+
+     alert "HotfixUpdater - Success" "Hotfix installed!"
+     rm -f "$DOWNLOAD_BIN" >/dev/null 2>&1

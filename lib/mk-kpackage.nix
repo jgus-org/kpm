@@ -13,6 +13,7 @@
 , uninstallScript ? null
 , launchScript ? null
 , scriptlet ? null
+, passthru ? { }
 ,
 }:
 assert builtins.match "[a-z0-9_-]+" id != null;
@@ -51,7 +52,7 @@ pkgs.runCommand "${id}-${versionString}-${platformString}"
     pkgs.gzip
     pkgs.unzip
   ] ++ buildInputs;
-  passthru = {
+  passthru = passthru // {
     kpm = {
       inherit id name author description version platforms dependencies filename manifest;
     };

@@ -1,4 +1,4 @@
-{ mkKpackage, fetchurl }:
+{ mkKpackage, fetchurl, pkgs }:
 
 let
   hfSource = fetchurl {
@@ -40,6 +40,10 @@ in
     installScript = ./install.sh;
     uninstallScript = ./uninstall-hf.sh;
     launchScript = ./launch.sh;
+    passthru.tests.callback = pkgs.runCommand "gargoyle-hf-callback-check" { } ''
+      sh ${./check-callback.sh} ${./install.sh} ${./uninstall-hf.sh}
+      touch "''${out}"
+    '';
   })
   (mkKpackage {
     id = "gargoyle";
@@ -76,5 +80,9 @@ in
     installScript = ./install.sh;
     uninstallScript = ./uninstall-sf.sh;
     launchScript = ./launch.sh;
+    passthru.tests.callback = pkgs.runCommand "gargoyle-sf-callback-check" { } ''
+      sh ${./check-callback.sh} ${./install.sh} ${./uninstall-sf.sh}
+      touch "''${out}"
+    '';
   })
 ]

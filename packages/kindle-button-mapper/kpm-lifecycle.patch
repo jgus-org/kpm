@@ -1,0 +1,476 @@
+diff --git a/src/main.rs b/src/main.rs
+index 78e7f7f..33f816e 100644
+--- a/src/main.rs
++++ b/src/main.rs
+@@ -42,0 +43,8 @@ fn main() {
++    let config_argument = || {
++        args.iter()
++            .skip(1)
++            .find(|argument| !argument.starts_with("--"))
++            .cloned()
++            .unwrap_or_else(|| "config.ini".to_string())
++    };
++
+@@ -53,7 +61 @@ fn main() {
+-        let cfg = args
+-            .iter()
+-            .skip(1)
+-            .find(|a| !a.starts_with("--"))
+-            .cloned()
+-            .unwrap_or_else(|| "config.ini".to_string());
+-        if let Err(e) = waf_helper::run(cfg) {
++        if let Err(e) = waf_helper::run(config_argument()) {
+@@ -65,0 +68,21 @@ fn main() {
++    if args.iter().any(|a| a == "--kpm-start") {
++        waf_helper::exit_with_response(waf_helper::start_daemon(&config_argument()));
++    }
++
++    if args.iter().any(|a| a == "--kpm-start-helper") {
++        waf_helper::exit_with_response(waf_helper::start_helper(&config_argument()));
++    }
++
++    if args.iter().any(|a| a == "--kpm-stop") {
++        waf_helper::exit_with_response(waf_helper::stop_daemon());
++    }
++
++    if args.iter().any(|a| a == "--kpm-stop-all") {
++        waf_helper::exit_with_response(waf_helper::stop_all());
++    }
++
++    if args.iter().any(|a| a == "--kpm-status") {
++        waf_helper::print_status();
++        return;
++    }
++
+@@ -106,0 +130,8 @@ fn main() {
++    let _pid_guard = match waf_helper::claim_daemon(config_path) {
++        Ok(guard) => guard,
++        Err(error) => {
++            error!("Failed to claim daemon ownership: {}", error);
++            process::exit(1);
++        }
++    };
++
+@@ -561 +591,0 @@ fn execute_script(script: &str) {
+-
+diff --git a/src/waf_helper.rs b/src/waf_helper.rs
+index 4dd7f73..1e7f6da 100644
+--- a/src/waf_helper.rs
++++ b/src/waf_helper.rs
+@@ -2,2 +2,2 @@ use evdev::{Device, InputEventKind};
+-use log::{error, info, warn};
+-use std::fs;
++use log::{info, warn};
++use std::fs::{self, File};
+@@ -7 +7,2 @@ use std::net::{TcpListener, TcpStream};
+-use std::process::Command;
++use std::path::Path;
++use std::process::{self, Command, Stdio};
+@@ -15,2 +16,7 @@ const INPUT_DIR: &str = "/dev/input";
+-const INITCTL: &str = "/sbin/initctl";
+-const SERVICE: &str = "kindle-button-mapper";
++const INSTALLED_BINARY: &str = env!("KPM_INSTALL_BINARY");
++const DAEMON_PID_FILE: &str = env!("KPM_DAEMON_PID_FILE");
++const HELPER_PID_FILE: &str = env!("KPM_HELPER_PID_FILE");
++const DAEMON_LOG: &str = env!("KPM_DAEMON_LOG");
++const HELPER_LOG: &str = env!("KPM_HELPER_LOG");
++const START_TIMEOUT: Duration = Duration::from_secs(3);
++const STOP_TIMEOUT: Duration = Duration::from_secs(5);
+@@ -69,0 +76 @@ pub fn run(config_path: String) -> Result<(), String> {
++    let _pid_guard = claim_helper(&config_path)?;
+@@ -124 +131 @@ fn route(method: &str, path: &str, body: &str, config_path: &str) -> (u16, Strin
+-        ("POST", "/reload") => reload_daemon(),
++        ("POST", "/reload") => reload_daemon(config_path),
+@@ -126 +133 @@ fn route(method: &str, path: &str, body: &str, config_path: &str) -> (u16, Strin
+-        ("POST", "/start") => start_daemon(),
++        ("POST", "/start") => start_daemon(config_path),
+@@ -377,2 +384 @@ fn logs_text() -> String {
+-    const LOG_PATH: &str = "/var/log/kindle-button-mapper.log";
+-    match fs::read_to_string(LOG_PATH) {
++    match fs::read_to_string(DAEMON_LOG) {
+@@ -384 +390 @@ fn logs_text() -> String {
+-        Err(e) => format!("cannot read {}: {}", LOG_PATH, e),
++        Err(e) => format!("cannot read {}: {}", DAEMON_LOG, e),
+@@ -571,3 +576,0 @@ fn capture(query: &std::collections::HashMap<String, String>, config_path: &str)
+-// The daemon runs as an upstart service, which — unlike the old SysV init
+-// script — writes no pidfile. Ask upstart directly instead of stat-ing a
+-// pidfile that never gets created.
+@@ -575,3 +578,14 @@ fn daemon_status() -> (bool, u32) {
+-    let output = match Command::new(INITCTL).args(["status", SERVICE]).output() {
+-        Ok(o) => o,
+-        Err(_) => return (false, 0),
++    match daemon_pid() {
++        Some(pid) => (true, pid),
++        None => (false, 0),
++    }
++}
++
++fn daemon_pid() -> Option<u32> {
++    let record = fs::read_to_string(DAEMON_PID_FILE).ok()?;
++    let pid = match record.split_whitespace().next().and_then(|field| field.parse::<u32>().ok()) {
++        Some(pid) => pid,
++        None => {
++            let _ = fs::remove_file(DAEMON_PID_FILE);
++            return None;
++        }
+@@ -579,25 +593,230 @@ fn daemon_status() -> (bool, u32) {
+-    let text = String::from_utf8_lossy(&output.stdout);
+-    // e.g. "kindle-button-mapper start/running, process 1234"
+-    let running = text.contains("start/running");
+-    if !running {
+-        return (false, 0);
+-    }
+-    let pid = text
+-        .rsplit("process ")
+-        .next()
+-        .and_then(|s| s.split_whitespace().next())
+-        .and_then(|s| s.trim().parse::<u32>().ok())
+-        .unwrap_or(0);
+-    (true, pid)
+-}
+-
+-fn run_initctl(action: &str) -> (u16, String) {
+-    match Command::new(INITCTL).args([action, SERVICE]).status() {
+-        Ok(s) if s.success() => (200, json_ok()),
+-        Ok(s) => (
+-            500,
+-            json_err(&format!("{} exited with {}", action, s.code().unwrap_or(-1))),
+-        ),
+-        Err(e) => {
+-            error!("initctl {}: {}", action, e);
+-            (500, json_err(&format!("initctl: {}", e)))
++    let cmdline = match fs::read(format!("/proc/{}/cmdline", pid)) {
++        Ok(cmdline) => cmdline,
++        Err(_) => {
++            let _ = fs::remove_file(DAEMON_PID_FILE);
++            return None;
++        }
++    };
++    let fields: Vec<&[u8]> = cmdline
++        .split(|byte| *byte == 0)
++        .filter(|field| !field.is_empty())
++        .collect();
++    if fields.len() != 2 || fields[0] != INSTALLED_BINARY.as_bytes() {
++        let _ = fs::remove_file(DAEMON_PID_FILE);
++        return None;
++    }
++    let config = match std::str::from_utf8(fields[1]) {
++        Ok(config) => config,
++        Err(_) => {
++            let _ = fs::remove_file(DAEMON_PID_FILE);
++            return None;
++        }
++    };
++    managed_pid(DAEMON_PID_FILE, &[config])
++}
++
++fn helper_pid() -> Option<u32> {
++    let record = fs::read_to_string(HELPER_PID_FILE).ok()?;
++    let pid = match record.split_whitespace().next().and_then(|field| field.parse::<u32>().ok()) {
++        Some(pid) => pid,
++        None => {
++            let _ = fs::remove_file(HELPER_PID_FILE);
++            return None;
++        }
++    };
++    let cmdline = match fs::read(format!("/proc/{}/cmdline", pid)) {
++        Ok(cmdline) => cmdline,
++        Err(_) => {
++            let _ = fs::remove_file(HELPER_PID_FILE);
++            return None;
++        }
++    };
++    let fields: Vec<&[u8]> = cmdline
++        .split(|byte| *byte == 0)
++        .filter(|field| !field.is_empty())
++        .collect();
++    if fields.len() != 3
++        || fields[0] != INSTALLED_BINARY.as_bytes()
++        || fields[1] != b"--waf-helper"
++    {
++        let _ = fs::remove_file(HELPER_PID_FILE);
++        return None;
++    }
++    let config = match std::str::from_utf8(fields[2]) {
++        Ok(config) => config,
++        Err(_) => {
++            let _ = fs::remove_file(HELPER_PID_FILE);
++            return None;
++        }
++    };
++    managed_pid(HELPER_PID_FILE, &["--waf-helper", config])
++}
++
++pub struct PidGuard {
++    path: &'static str,
++    record: String,
++}
++
++impl Drop for PidGuard {
++    fn drop(&mut self) {
++        if fs::read_to_string(self.path).ok().as_deref() == Some(&self.record) {
++            let _ = fs::remove_file(self.path);
++        }
++    }
++}
++
++pub fn claim_daemon(config_path: &str) -> Result<PidGuard, String> {
++    if daemon_pid().is_some() {
++        return Err("a managed daemon is already running".to_string());
++    }
++    claim_process(DAEMON_PID_FILE, &[config_path])
++}
++
++fn claim_helper(config_path: &str) -> Result<PidGuard, String> {
++    if helper_pid().is_some() {
++        return Err("a managed helper is already running".to_string());
++    }
++    claim_process(HELPER_PID_FILE, &["--waf-helper", config_path])
++}
++
++fn claim_process(path: &'static str, arguments: &[&str]) -> Result<PidGuard, String> {
++    if managed_pid(path, arguments).is_some() {
++        return Err("a managed process is already running".to_string());
++    }
++    let start_time = process_start_time(process::id())
++        .ok_or_else(|| "process start time is unavailable".to_string())?;
++    let record = format!("{} {}", process::id(), start_time);
++    let temporary_path = format!("{}.{}", path, process::id());
++    let _ = fs::remove_file(&temporary_path);
++    let mut file = match File::options().write(true).create_new(true).open(&temporary_path) {
++        Ok(file) => file,
++        Err(error) => return Err(format!("cannot claim {}: {}", path, error)),
++    };
++    if let Err(error) = file.write_all(record.as_bytes()) {
++        let _ = fs::remove_file(&temporary_path);
++        return Err(format!("cannot write {}: {}", path, error));
++    }
++    drop(file);
++    if let Err(error) = fs::hard_link(&temporary_path, path) {
++        let _ = fs::remove_file(&temporary_path);
++        return Err(format!("cannot claim {}: {}", path, error));
++    }
++    let _ = fs::remove_file(&temporary_path);
++    Ok(PidGuard { path, record })
++}
++
++fn managed_pid(path: &str, arguments: &[&str]) -> Option<u32> {
++    let record = fs::read_to_string(path).ok()?;
++    let mut fields = record.split_whitespace();
++    let parsed = (
++        fields.next().and_then(|field| field.parse::<u32>().ok()),
++        fields.next().and_then(|field| field.parse::<u64>().ok()),
++        fields.next(),
++    );
++    let (Some(pid), Some(start_time), None) = parsed else {
++        let _ = fs::remove_file(path);
++        return None;
++    };
++    if process_start_time(pid) != Some(start_time) || !process_matches(pid, arguments) {
++        let _ = fs::remove_file(path);
++        return None;
++    }
++    Some(pid)
++}
++
++fn process_start_time(pid: u32) -> Option<u64> {
++    let stat = fs::read_to_string(format!("/proc/{}/stat", pid)).ok()?;
++    stat.rsplit_once(") ")?
++        .1
++        .split_whitespace()
++        .nth(19)?
++        .parse()
++        .ok()
++}
++
++fn process_matches(pid: u32, arguments: &[&str]) -> bool {
++    if fs::read_link(format!("/proc/{}/exe", pid)).ok().as_deref()
++        != Some(Path::new(INSTALLED_BINARY))
++    {
++        return false;
++    }
++    let cmdline = match fs::read(format!("/proc/{}/cmdline", pid)) {
++        Ok(value) => value,
++        Err(_) => return false,
++    };
++    let actual: Vec<&[u8]> = cmdline
++        .split(|byte| *byte == 0)
++        .filter(|field| !field.is_empty())
++        .collect();
++    actual.len() == arguments.len() + 1
++        && actual.first().copied() == Some(INSTALLED_BINARY.as_bytes())
++        && actual[1..]
++            .iter()
++            .zip(arguments)
++            .all(|(left, right)| *left == right.as_bytes())
++}
++
++fn spawn_managed(arguments: &[&str], pid_file: &str, log_path: &str) -> (u16, String) {
++    let running = if pid_file == DAEMON_PID_FILE {
++        daemon_pid()
++    } else {
++        helper_pid()
++    };
++    if running.is_some() {
++        return if managed_pid(pid_file, arguments).is_some() {
++            (200, json_ok())
++        } else {
++            (500, json_err("a managed process is running with different arguments"))
++        };
++    }
++    let stdout = match File::options().create(true).append(true).open(log_path) {
++        Ok(file) => file,
++        Err(error) => return (500, json_err(&format!("cannot open log: {}", error))),
++    };
++    let stderr = match stdout.try_clone() {
++        Ok(file) => file,
++        Err(error) => return (500, json_err(&format!("cannot clone log: {}", error))),
++    };
++    match Command::new(INSTALLED_BINARY)
++        .args(arguments)
++        .stdin(Stdio::null())
++        .stdout(Stdio::from(stdout))
++        .stderr(Stdio::from(stderr))
++        .spawn()
++    {
++        Ok(mut child) => {
++            let deadline = Instant::now() + START_TIMEOUT;
++            while Instant::now() < deadline {
++                if managed_pid(pid_file, arguments) == Some(child.id()) {
++                    return (200, json_ok());
++                }
++                if let Ok(Some(status)) = child.try_wait() {
++                    if managed_pid(pid_file, arguments).is_some() {
++                        return (200, json_ok());
++                    }
++                    return (500, json_err(&format!("process exited with {}", status)));
++                }
++                std::thread::sleep(Duration::from_millis(25));
++            }
++            let _ = child.kill();
++            (500, json_err("process did not claim ownership"))
++        }
++        Err(error) => (500, json_err(&format!("cannot start process: {}", error))),
++    }
++}
++
++fn stop_managed(pid_file: &str, arguments: &[&str]) -> (u16, String) {
++    let Some(pid) = managed_pid(pid_file, arguments) else {
++        return (200, json_ok());
++    };
++    let target = Pid::from_raw(pid as i32);
++    if let Err(error) = kill(target, Signal::SIGTERM) {
++        if managed_pid(pid_file, arguments).is_none() {
++            return (200, json_ok());
++        }
++        return (500, json_err(&format!("cannot stop process: {}", error)));
++    }
++    let deadline = Instant::now() + STOP_TIMEOUT;
++    while Instant::now() < deadline {
++        if managed_pid(pid_file, arguments).is_none() {
++            return (200, json_ok());
+@@ -604,0 +824 @@ fn run_initctl(action: &str) -> (u16, String) {
++        std::thread::sleep(Duration::from_millis(25));
+@@ -605,0 +826 @@ fn run_initctl(action: &str) -> (u16, String) {
++    (500, json_err("managed process did not stop"))
+@@ -612 +833 @@ fn run_initctl(action: &str) -> (u16, String) {
+-fn reload_daemon() -> (u16, String) {
++fn reload_daemon(config_path: &str) -> (u16, String) {
+@@ -624 +845 @@ fn reload_daemon() -> (u16, String) {
+-    restart_daemon()
++    restart_daemon(config_path)
+@@ -627,2 +848,6 @@ fn reload_daemon() -> (u16, String) {
+-fn restart_daemon() -> (u16, String) {
+-    run_initctl("restart")
++fn restart_daemon(config_path: &str) -> (u16, String) {
++    let (status, body) = stop_daemon();
++    if status != 200 {
++        return (status, body);
++    }
++    start_daemon(config_path)
+@@ -631,2 +856,62 @@ fn restart_daemon() -> (u16, String) {
+-fn stop_daemon() -> (u16, String) {
+-    run_initctl("stop")
++pub fn stop_daemon() -> (u16, String) {
++    let Some(pid) = daemon_pid() else {
++        return (200, json_ok());
++    };
++    let cmdline = match fs::read(format!("/proc/{}/cmdline", pid)) {
++        Ok(cmdline) => cmdline,
++        Err(_) => return (200, json_ok()),
++    };
++    let fields: Vec<&[u8]> = cmdline
++        .split(|byte| *byte == 0)
++        .filter(|field| !field.is_empty())
++        .collect();
++    let config = match fields.get(1).and_then(|field| std::str::from_utf8(field).ok()) {
++        Some(config) => config,
++        None if daemon_pid().is_none() => return (200, json_ok()),
++        None => return (500, json_err("daemon config path is invalid")),
++    };
++    stop_managed(DAEMON_PID_FILE, &[config])
++}
++
++pub fn start_daemon(config_path: &str) -> (u16, String) {
++    spawn_managed(&[config_path], DAEMON_PID_FILE, DAEMON_LOG)
++}
++
++pub fn start_helper(config_path: &str) -> (u16, String) {
++    spawn_managed(&["--waf-helper", config_path], HELPER_PID_FILE, HELPER_LOG)
++}
++
++fn stop_helper() -> (u16, String) {
++    let Some(pid) = helper_pid() else {
++        return (200, json_ok());
++    };
++    let cmdline = match fs::read(format!("/proc/{}/cmdline", pid)) {
++        Ok(cmdline) => cmdline,
++        Err(_) => {
++            let _ = fs::remove_file(HELPER_PID_FILE);
++            return (200, json_ok());
++        }
++    };
++    let fields: Vec<&[u8]> = cmdline
++        .split(|byte| *byte == 0)
++        .filter(|field| !field.is_empty())
++        .collect();
++    let config = match fields.get(2).and_then(|field| std::str::from_utf8(field).ok()) {
++        Some(config) => config,
++        None if helper_pid().is_none() => return (200, json_ok()),
++        None => return (500, json_err("helper config path is invalid")),
++    };
++    stop_managed(HELPER_PID_FILE, &["--waf-helper", config])
++}
++
++pub fn stop_all() -> (u16, String) {
++    let (status, body) = stop_helper();
++    if status != 200 {
++        return (status, body);
++    }
++    stop_daemon()
++}
++
++pub fn print_status() {
++    let (running, pid) = daemon_status();
++    println!("{} {}", if running { "running" } else { "stopped" }, pid);
+@@ -635,2 +920,7 @@ fn stop_daemon() -> (u16, String) {
+-fn start_daemon() -> (u16, String) {
+-    run_initctl("start")
++pub fn exit_with_response(response: (u16, String)) -> ! {
++    if response.0 == 200 {
++        println!("{}", response.1);
++        process::exit(0);
++    }
++    eprintln!("{}", response.1);
++    process::exit(1)
+@@ -667 +957,9 @@ mod tests {
+-    use super::sort_nodes;
++    use super::{managed_pid, sort_nodes};
++
++    #[test]
++    fn a_malformed_pid_record_is_removed() {
++        let path = format!("/tmp/kpm-button-mapper-malformed-pid-{}", std::process::id());
++        std::fs::write(&path, "123").expect("record written");
++        assert_eq!(managed_pid(&path, &[]), None);
++        assert!(!std::path::Path::new(&path).exists());
++    }

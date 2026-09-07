@@ -2,7 +2,7 @@
 
 This repository ports packages from the original [KindleForge package repository](https://github.com/KindleTweaks/Repository) for the current Kindle Package Manager (KPM) catalog.
 
-KWordle installation and its Home screen launcher have been verified on a physical Kindle. Other package and device combinations remain unverified.
+Not all packages have been tested. If you encounter errors you beleive are related to packaging, please file an issue, or better yet propose a PR. Thanks!
 
 ## Before you start
 
@@ -23,16 +23,33 @@ The first command adds this repository once. Replace `<package>` with the ID of 
 
 | ID | Package | Description |
 | --- | --- | --- |
+| `alpinelinux` | [Alpine Linux](packages/alpinelinux/README.md) | Alpine Linux chroot and MATE desktop |
 | `gargoyle` | [Gargoyle](packages/gargoyle/README.md) | Text adventure interpreter |
+| `gambatte-k2` | [Gambatte-K2](packages/gambatte-k2/README.md) | Game Boy and Game Boy Color emulator |
+| `gnomegames` | [Gnome Games Suite](packages/gnomegames/README.md) | Chess and Mines games |
+| `hotfixupdater` | [HotfixUpdater](packages/hotfixupdater/README.md) | Update an installed Universal Hotfix |
+| `jarlauncher` | [JarLauncher](packages/jarlauncher/README.md) | Run a user-provided Java archive |
+| `kindlecraft` | [KindleCraft](packages/kindlecraft/README.md) | Minimal Minecraft Java Edition server |
+| `kindle-button-mapper` | [Kindle Button Mapper](packages/kindle-button-mapper/README.md) | Map Kindle buttons and Bluetooth controllers |
+| `kindlefetch` | [KindleFetch](packages/kindlefetch/README.md) | Book downloader for kTerm |
+| `kindle-hid-passthrough` | [Kindle HID Passthrough](packages/kindle-hid-passthrough/README.md) | On-demand Bluetooth HID host and manager |
+| `kinamp` | [KinAMP](packages/kinamp/README.md) | Music player |
+| `kanki` | [KAnki](packages/kanki/README.md) | Flashcard app |
+| `knotes` | [KNotes](packages/knotes/README.md) | Notes and kanban app |
+| `kual` | [PEKI KUAL Installer](packages/kual/README.md) | Install or launch KUAL through PEKI |
 | `kpomo` | KPomo | Pomodoro focus timer |
 | `kreate` | Kreate | Drawing application |
 | `kships` | KShips | Battleship |
 | `kwordle` | KWordle | Wordle for Kindle |
 | `larkplayer` | LARKPlayer | Audiobook reader |
+| `ranki` | [RAnki](packages/ranki/README.md) | Anki flashcard client |
+| `sox` | [SOX Media Player](packages/sox/README.md) | Bluetooth and USB audio player |
+| `textadept` | [Textadept](packages/textadept/README.md) | Programmable text editor |
 | `toggleads` | Toggle ADs | Toggle Kindle advertisements |
 | `updateblockstatus` | UpdateBlock Status | Show OTA update-blocker status |
+| `wordgrinder` | [WordGrinder](packages/wordgrinder/README.md) | Distraction-free word processor |
 
-Installed packages appear in Library with the upstream cover art included by their packages. Toggle ADs, UpdateBlock Status, and Gargoyle also install Home screen launchers.
+Packages install Library launchers and upstream cover art where available.
 
 ## Everyday use
 
