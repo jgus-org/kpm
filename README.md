@@ -23,7 +23,7 @@ The first command adds this repository once. Replace `<package>` with the ID of 
 
 | ID | Package | Description |
 | --- | --- | --- |
-| `gargoyle` | Gargoyle | Text adventure interpreter |
+| `gargoyle` | [Gargoyle](packages/gargoyle/README.md) | Text adventure interpreter |
 | `kpomo` | KPomo | Pomodoro focus timer |
 | `kreate` | Kreate | Drawing application |
 | `kships` | KShips | Battleship |
