@@ -24,22 +24,22 @@ The first command adds this repository once. Replace `<package>` with the ID of 
 | ID | Package | Description |
 | --- | --- | --- |
 | `alpinelinux` | [Alpine Linux](packages/alpinelinux/README.md) | Alpine Linux chroot and MATE desktop |
-| `gargoyle` | [Gargoyle](packages/gargoyle/README.md) | Text adventure interpreter |
 | `gambatte-k2` | [Gambatte-K2](packages/gambatte-k2/README.md) | Game Boy and Game Boy Color emulator |
+| `gargoyle` | [Gargoyle](packages/gargoyle/README.md) | Text adventure interpreter |
 | `gnomegames` | [Gnome Games Suite](packages/gnomegames/README.md) | Chess and Mines games |
 | `hotfixupdater` | [HotfixUpdater](packages/hotfixupdater/README.md) | Update an installed Universal Hotfix |
 | `jarlauncher` | [JarLauncher](packages/jarlauncher/README.md) | Run a user-provided Java archive |
-| `kindlecraft` | [KindleCraft](packages/kindlecraft/README.md) | Minimal Minecraft Java Edition server |
-| `kindle-button-mapper` | [Kindle Button Mapper](packages/kindle-button-mapper/README.md) | Map Kindle buttons and Bluetooth controllers |
-| `kindlefetch` | [KindleFetch](packages/kindlefetch/README.md) | Book downloader for kTerm |
-| `kindle-hid-passthrough` | [Kindle HID Passthrough](packages/kindle-hid-passthrough/README.md) | On-demand Bluetooth HID host and manager |
-| `kinamp` | [KinAMP](packages/kinamp/README.md) | Music player |
 | `kanki` | [KAnki](packages/kanki/README.md) | Flashcard app |
+| `kinamp` | [KinAMP](packages/kinamp/README.md) | Music player |
+| `kindle-button-mapper` | [Kindle Button Mapper](packages/kindle-button-mapper/README.md) | Map Kindle buttons and Bluetooth controllers |
+| `kindle-hid-passthrough` | [Kindle HID Passthrough](packages/kindle-hid-passthrough/README.md) | On-demand Bluetooth HID host and manager |
+| `kindlecraft` | [KindleCraft](packages/kindlecraft/README.md) | Minimal Minecraft Java Edition server |
+| `kindlefetch` | [KindleFetch](packages/kindlefetch/README.md) | Book downloader for kTerm |
 | `knotes` | [KNotes](packages/knotes/README.md) | Notes and kanban app |
-| `kual` | [PEKI KUAL Installer](packages/kual/README.md) | Install or launch KUAL through PEKI |
 | `kpomo` | KPomo | Pomodoro focus timer |
 | `kreate` | Kreate | Drawing application |
 | `kships` | KShips | Battleship |
+| `kual` | [PEKI KUAL Installer](packages/kual/README.md) | Install or launch KUAL through PEKI |
 | `kwordle` | KWordle | Wordle for Kindle |
 | `larkplayer` | LARKPlayer | Audiobook reader |
 | `ranki` | [RAnki](packages/ranki/README.md) | Anki flashcard client |
